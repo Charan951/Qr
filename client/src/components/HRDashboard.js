@@ -45,10 +45,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ImageViewer from './ImageViewer';
-<<<<<<< HEAD
 import MessageCenter from './MessageCenter';
 import { Badge } from '@mui/material';
-=======
 import { motion, AnimatePresence } from 'framer-motion';
 import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
@@ -170,7 +168,6 @@ const dialogVariants = {
     transition: { duration: 0.2 }
   }
 };
->>>>>>> b224b7b85b52f77762d81d672dcc7941071c3573
 
 const HRDashboard = () => {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -530,7 +527,6 @@ const HRDashboard = () => {
           )}
         </AnimatePresence>
 
-<<<<<<< HEAD
       {/* Navigation Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentView} onChange={(e, newValue) => {
@@ -561,13 +557,6 @@ const HRDashboard = () => {
 
       {currentView === 'dashboard' ? (
         <>
-      {/* HR Action Notice */}
-      <Alert severity="success" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          <strong>HR Actions Enabled:</strong> You can now approve or reject pending access requests directly from this dashboard.
-        </Typography>
-      </Alert>
-=======
         {/* HR Action Notice */}
         <motion.div
           variants={cardVariants}
@@ -580,7 +569,6 @@ const HRDashboard = () => {
             </Typography>
           </Alert>
         </motion.div>
->>>>>>> b224b7b85b52f77762d81d672dcc7941071c3573
 
         {/* Statistics Cards */}
         <motion.div

@@ -46,9 +46,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import HRManagement from './HRManagement';
 import ImageViewer from './ImageViewer';
-<<<<<<< HEAD
 import MessageCenter from './MessageCenter';
-=======
 import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 // Animation variants for micro-interactions and feedback
@@ -108,7 +106,6 @@ const buttonPulseVariants = {
     transition: { duration: 0.6, repeat: Infinity, repeatDelay: 3 }
   }
 };
->>>>>>> b224b7b85b52f77762d81d672dcc7941071c3573
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
