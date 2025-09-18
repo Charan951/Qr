@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Local Storage</title>
+</head>
+<body>
+    <h1>Local Storage Check</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        // Check for admin token
+        const adminToken = localStorage.getItem('adminToken');
+        const adminUser = localStorage.getItem('adminUser');
+        
+        output.innerHTML = `
+            <h2>Admin Token:</h2>
+            <p>${adminToken || 'No admin token found'}</p>
+            
+            <h2>Admin User:</h2>
+            <p>${adminUser || 'No admin user found'}</p>
+            
+            <h2>All localStorage items:</h2>
+            <ul>
+                ${Object.keys(localStorage).map(key => 
+                    `<li><strong>${key}:</strong> ${localStorage.getItem(key)}</li>`
+                ).join('')}
+            </ul>
+        `;
+        
+        console.log('Admin Token:', adminToken);
+        console.log('Admin User:', adminUser);
+        console.log('All localStorage:', localStorage);
+    </script>
+</body>
+</html>

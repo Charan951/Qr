@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Admin Token</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Admin Dashboard Token</h1>
+        <p>Click the button below to automatically get a fresh admin token and fix the dashboard data fetching issue.</p>
+        
+        <button class="btn" onclick="fixToken()">Fix Admin Token</button>
+        <button class="btn" onclick="goToDashboard()">Go to Admin Dashboard</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function fixToken() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '⏳ Getting fresh admin token...';
+            statusDiv.className = '';
+            
+            try {
+                // Login to get fresh token
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+                
+                const data = await response.json();
+                
+                // Store the token
+                localStorage.setItem('adminToken', data.token);
+                
+                // Test the token
+                const testResponse = await fetch('http://localhost:5000/api/admin/requests', {
+                    headers: {
+                        'Authorization': `Bearer ${data.token}`
+                    }
+                });
+                
+                if (!testResponse.ok) {
+                    throw new Error('Token test failed');
+                }
+                
+                const testData = await testResponse.json();
+                
+                statusDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Success! Admin token updated successfully.<br>
+                        📊 Found ${testData.data.length} requests in database.<br>
+                        🎉 You can now go to the admin dashboard.
+                    </div>
+                `;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error: ${error.message}<br>
+                        Please make sure the server is running on port 5000.
+                    </div>
+                `;
+            }
+        }
+        
+        function goToDashboard() {
+            window.open('/admin/dashboard', '_blank');
+        }
+    </script>
+</body>
+</html>
