@@ -2,9 +2,9 @@ services:
   - type: web
     name: qr-access-backend
     env: node
-    plan: free
-    buildCommand: cd server && npm install
-    startCommand: cd server && npm start
+    rootDir: ./server
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
