@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { FiUser, FiPhone, FiMail, FiUserCheck } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import ImageCapture from "./ImageCapture";
+import { getApiUrl, API_ENDPOINTS } from "../config/api";
 
 const AccessRequestForm = () => {
   const [formData, setFormData] = useState({
@@ -79,7 +81,7 @@ const AccessRequestForm = () => {
         submitData.interviewType = formData.interviewType;
       }
 
-      const submitResponse = await fetch('http://localhost:5000/api/requests', {
+      const submitResponse = await fetch(getApiUrl(API_ENDPOINTS.REQUESTS), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,10 +184,10 @@ const AccessRequestForm = () => {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-r from-blue-700 to-purple-700 text-white p-4">
         <div className="max-w-4xl w-full space-y-6">
-          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-12 shadow-xl text-center">
-            <div className="text-6xl mb-4 animate-pulse">✅</div>
-            <h1 className="text-3xl font-semibold mb-2">Request Submitted!</h1>
-            <p className="text-white/80 mb-6">You will be notified once approved.</p>
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-6 sm:p-12 shadow-xl text-center">
+            <div className="text-4xl sm:text-6xl mb-4 animate-pulse">✅</div>
+            <h1 className="text-2xl sm:text-3xl font-semibold mb-2">Request Submitted!</h1>
+            <p className="text-white/80 mb-6 text-sm sm:text-base">You will be notified once approved.</p>
             
 
           </div>
@@ -194,59 +196,79 @@ const AccessRequestForm = () => {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-8 px-4">
-      <div className="max-w-3xl w-full backdrop-blur-xl bg-white/10 rounded-3xl shadow-2xl p-8 space-y-6 border border-white/20">
-        <h1 className="text-4xl font-bold text-white text-center mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-4 sm:py-8 px-2 sm:px-4">
+      <div className="max-w-3xl w-full backdrop-blur-xl bg-white/10 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 space-y-4 sm:space-y-6 border border-white/20">
+        <motion.h1 
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-2xl sm:text-4xl font-bold text-white text-center mb-4 sm:mb-6"
+        >
           Access Request
-        </h1>
+        </motion.h1>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <motion.form 
+          onSubmit={handleSubmit} 
+          className="space-y-4 sm:space-y-5"
+          variants={formVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1 flex items-center gap-2">
+          <motion.div 
+            className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4"
+            variants={inputVariants}
+          >
+            <motion.div className="flex flex-col" variants={inputVariants}>
+              <label className="text-white/80 mb-1 flex items-center gap-2 text-sm sm:text-base">
                 <FiUser /> Full Name *
               </label>
-              <input
+              <motion.input
                 type="text"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
                 required
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
                 placeholder="John Doe"
+                whileFocus="focus"
+                variants={inputVariants}
               />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1 flex items-center gap-2">
-                <FiPhone /> Phone *
+            </motion.div>
+            <motion.div className="flex flex-col" variants={inputVariants}>
+              <label className="text-white/80 mb-1 flex items-center gap-2 text-sm sm:text-base">
+                <FiPhone /> Phone Number *
               </label>
-              <input
+              <motion.input
                 type="tel"
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 required
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400"
-                placeholder="+91 98765 43210"
+                className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
+                placeholder="+91 9876543210"
+                whileFocus="focus"
+                variants={inputVariants}
               />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <div className="flex flex-col">
-            <label className="text-white/80 mb-1 flex items-center gap-2">
+          <motion.div className="flex flex-col" variants={inputVariants}>
+            <label className="text-white/80 mb-1 flex items-center gap-2 text-sm sm:text-base">
               <FiMail /> Email *
             </label>
-            <input
+            <motion.input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
               placeholder="you@example.com"
+              whileFocus="focus"
+              variants={inputVariants}
             />
-          </div>
+          </motion.div>
 
           {/* Visit Details */}
           <div className="flex flex-col">
@@ -483,17 +505,189 @@ const AccessRequestForm = () => {
           </div>
 
           {/* Submit */}
-          <button
+          <motion.button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white font-bold hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            variants={buttonVariants}
+            initial="idle"
+            whileHover="hover"
+            whileTap="tap"
           >
-            {isSubmitting ? "Processing..." : "Submit Request"}
-          </button>
-        </form>
+            <motion.span
+              animate={isSubmitting ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
+              transition={isSubmitting ? { repeat: Infinity, duration: 1 } : {}}
+            >
+              {isSubmitting ? "Processing..." : "Submit Request"}
+            </motion.span>
+          </motion.button>
+        </motion.form>
+
+        {/* Success Message */}
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center"
+                variants={successVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <motion.div
+                  className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 360, 0]
+                  }}
+                  transition={{ 
+                    duration: 0.8,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <FiUserCheck className="text-green-600 text-2xl" />
+                </motion.div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  Request Submitted Successfully!
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Your access request has been submitted and is being processed.
+                </p>
+                <motion.button
+                  onClick={() => setShowSuccess(false)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Close
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 };
 
 export default AccessRequestForm;
+
+// Animation variants for form elements
+const formVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.6,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const inputVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { duration: 0.4 }
+  },
+  focus: {
+    scale: 1.02,
+    transition: { duration: 0.2 }
+  }
+};
+
+const buttonVariants = {
+  idle: { scale: 1 },
+  hover: { 
+    scale: 1.05,
+    transition: { duration: 0.2 }
+  },
+  tap: { 
+    scale: 0.95,
+    transition: { duration: 0.1 }
+  }
+};
+
+const successVariants = {
+  hidden: { opacity: 0, scale: 0.8, y: 50 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 20
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.8, 
+    y: -50,
+    transition: { duration: 0.3 }
+  }
+};
+
+// Enhanced micro-interaction variants
+const microInteractionVariants = {
+  tap: { scale: 0.95 },
+  hover: { scale: 1.02, transition: { duration: 0.2 } },
+  focus: { 
+    scale: 1.02, 
+    boxShadow: "0 0 0 3px rgba(25, 118, 210, 0.3)",
+    transition: { duration: 0.2 }
+  }
+};
+
+const feedbackVariants = {
+  success: {
+    scale: [1, 1.1, 1],
+    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
+    transition: { duration: 0.6 }
+  },
+  error: {
+    x: [-10, 10, -10, 10, 0],
+    backgroundColor: ["#f44336", "#ef5350", "#f44336"],
+    transition: { duration: 0.4 }
+  },
+  loading: {
+    rotate: 360,
+    transition: { duration: 1, repeat: Infinity, ease: "linear" }
+  },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: { duration: 0.8, repeat: Infinity }
+  }
+};
+
+const fieldValidationVariants = {
+  valid: {
+    borderColor: "#4caf50",
+    boxShadow: "0 0 0 2px rgba(76, 175, 80, 0.2)",
+    transition: { duration: 0.3 }
+  },
+  invalid: {
+    borderColor: "#f44336",
+    boxShadow: "0 0 0 2px rgba(244, 67, 54, 0.2)",
+    x: [-5, 5, -5, 5, 0],
+    transition: { duration: 0.4 }
+  },
+  typing: {
+    borderColor: "#2196f3",
+    boxShadow: "0 0 0 2px rgba(33, 150, 243, 0.2)",
+    transition: { duration: 0.2 }
+  }
+};
+
+const progressVariants = {
+  initial: { width: "0%" },
+  animate: { width: "100%" },
+  transition: { duration: 2, ease: "easeInOut" }
+};

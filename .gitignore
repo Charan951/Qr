@@ -29,3 +29,23 @@ Thumbs.db
 # Build directories
 dist/
 build/
+
+# Deployment and sensitive files
+.env.staging
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+
+# Runtime and cache
+.cache/
+.tmp/
+.temp/
+
+# Coverage reports
+coverage/
+
+# Package manager files
+package-lock.json
+yarn.lock

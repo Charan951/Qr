@@ -45,8 +45,132 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ImageViewer from './ImageViewer';
+<<<<<<< HEAD
 import MessageCenter from './MessageCenter';
 import { Badge } from '@mui/material';
+=======
+import { motion, AnimatePresence } from 'framer-motion';
+import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 30, 
+    scale: 0.95 
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+      duration: 0.5
+    }
+  },
+  hover: {
+    y: -5,
+    scale: 1.02,
+    boxShadow: "0 15px 30px rgba(0,0,0,0.1)",
+    transition: { duration: 0.3 }
+  }
+};
+
+const statsCardVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 20, 
+    scale: 0.9 
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 15
+    }
+  },
+  hover: {
+    scale: 1.05,
+    y: -3,
+    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+    transition: { duration: 0.2 }
+  }
+};
+
+const buttonVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { duration: 0.3 }
+  },
+  hover: {
+    scale: 1.05,
+    transition: { duration: 0.2 }
+  },
+  tap: {
+    scale: 0.95,
+    transition: { duration: 0.1 }
+  }
+};
+
+const tableVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 40 
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 80,
+      damping: 15,
+      delay: 0.3
+    }
+  }
+};
+
+const dialogVariants = {
+  hidden: { 
+    opacity: 0, 
+    scale: 0.8,
+    y: 50
+  },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 25
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    y: 50,
+    transition: { duration: 0.2 }
+  }
+};
+>>>>>>> b224b7b85b52f77762d81d672dcc7941071c3573
 
 const HRDashboard = () => {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -102,7 +226,7 @@ const HRDashboard = () => {
         endDate: filters.endDate ? filters.endDate.format('YYYY-MM-DD') : undefined,
       };
 
-      const response = await axios.get('http://localhost:5000/api/hr/requests', {
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.HR_REQUESTS), {
         headers: { Authorization: `Bearer ${token}` },
         params,
       });
@@ -178,7 +302,7 @@ const HRDashboard = () => {
       };
 
       const response = await axios.patch(
-        `http://localhost:5000/api/hr/requests/${selectedRequest._id}`,
+        buildApiUrl(API_ENDPOINTS.HR_REQUESTS, selectedRequest._id),
         payload,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -232,7 +356,7 @@ const HRDashboard = () => {
       };
 
       const response = await axios.patch(
-        'http://localhost:5000/api/hr/requests/bulk',
+        getApiUrl(API_ENDPOINTS.HR_REQUESTS_BULK),
         payload,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -356,30 +480,57 @@ const HRDashboard = () => {
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <People sx={{ mr: 2, fontSize: 32, color: 'secondary.main' }} />
-          <Typography variant="h4" component="h1" color="secondary">
-            HR Dashboard
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={<Logout />}
-          onClick={handleLogout}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <Box>
+        {/* Header */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
         >
-          Logout
-        </Button>
-      </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <People sx={{ mr: 2, fontSize: 32, color: 'secondary.main' }} />
+              <Typography variant="h4" component="h1" color="secondary">
+                HR Dashboard
+              </Typography>
+            </Box>
+            <motion.div
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              <Button
+                variant="outlined"
+                startIcon={<Logout />}
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </motion.div>
+          </Box>
+        </motion.div>
 
-      {message.text && (
-        <Alert severity={message.type} sx={{ mb: 3 }} onClose={() => setMessage({ type: '', text: '' })}>
-          {message.text}
-        </Alert>
-      )}
+        <AnimatePresence>
+          {message.text && (
+            <motion.div
+              variants={cardVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <Alert severity={message.type} sx={{ mb: 3 }} onClose={() => setMessage({ type: '', text: '' })}>
+                {message.text}
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+<<<<<<< HEAD
       {/* Navigation Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentView} onChange={(e, newValue) => {
@@ -416,78 +567,118 @@ const HRDashboard = () => {
           <strong>HR Actions Enabled:</strong> You can now approve or reject pending access requests directly from this dashboard.
         </Typography>
       </Alert>
+=======
+        {/* HR Action Notice */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Alert severity="success" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              <strong>HR Actions Enabled:</strong> You can now approve or reject pending access requests directly from this dashboard.
+            </Typography>
+          </Alert>
+        </motion.div>
+>>>>>>> b224b7b85b52f77762d81d672dcc7941071c3573
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Total Requests
-                  </Typography>
-                  <Typography variant="h4">
-                    {stats.total || 0}
-                  </Typography>
-                </Box>
-                <Dashboard sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Pending
-                  </Typography>
-                  <Typography variant="h4" color="warning.main">
-                    {stats.pending || 0}
-                  </Typography>
-                </Box>
-                <Pending sx={{ fontSize: 40, color: 'warning.main', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Approved
-                  </Typography>
-                  <Typography variant="h4" color="success.main">
-                    {stats.approved || 0}
-                  </Typography>
-                </Box>
-                <CheckCircle sx={{ fontSize: 40, color: 'success.main', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Rejected
-                  </Typography>
-                  <Typography variant="h4" color="error.main">
-                    {stats.rejected || 0}
-                  </Typography>
-                </Box>
-                <Cancel sx={{ fontSize: 40, color: 'error.main', opacity: 0.7 }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        {/* Statistics Cards */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <motion.div
+                variants={statsCardVariants}
+                whileHover="hover"
+              >
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography color="textSecondary" gutterBottom>
+                          Total Requests
+                        </Typography>
+                        <Typography variant="h4">
+                          {stats.total || 0}
+                        </Typography>
+                      </Box>
+                      <Dashboard sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <motion.div
+                variants={statsCardVariants}
+                whileHover="hover"
+              >
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography color="textSecondary" gutterBottom>
+                          Pending
+                        </Typography>
+                        <Typography variant="h4" color="warning.main">
+                          {stats.pending || 0}
+                        </Typography>
+                      </Box>
+                      <Pending sx={{ fontSize: 40, color: 'warning.main', opacity: 0.7 }} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <motion.div
+                variants={statsCardVariants}
+                whileHover="hover"
+              >
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography color="textSecondary" gutterBottom>
+                          Approved
+                        </Typography>
+                        <Typography variant="h4" color="success.main">
+                          {stats.approved || 0}
+                        </Typography>
+                      </Box>
+                      <CheckCircle sx={{ fontSize: 40, color: 'success.main', opacity: 0.7 }} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <motion.div
+                variants={statsCardVariants}
+                whileHover="hover"
+              >
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography color="textSecondary" gutterBottom>
+                          Rejected
+                        </Typography>
+                        <Typography variant="h4" color="error.main">
+                          {stats.rejected || 0}
+                        </Typography>
+                      </Box>
+                      <Cancel sx={{ fontSize: 40, color: 'error.main', opacity: 0.7 }} />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Grid>
+          </Grid>
+        </motion.div>
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
@@ -868,6 +1059,7 @@ const HRDashboard = () => {
         <MessageCenter userRole="hr" onUnreadCountChange={fetchUnreadCount} />
       )}
     </Box>
+    </motion.div>
   );
 };
 
