@@ -306,58 +306,6 @@ const AdminDashboard = () => {
             </Alert>
           )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Requests
-              </Typography>
-              <Typography variant="h4">
-                {stats.total || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Pending
-              </Typography>
-              <Typography variant="h4" color="warning.main">
-                {stats.pending || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Approved
-              </Typography>
-              <Typography variant="h4" color="success.main">
-                {stats.approved || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Rejected
-              </Typography>
-              <Typography variant="h4" color="error.main">
-                {stats.rejected || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Filters and Export */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
@@ -618,42 +566,109 @@ const AdminDashboard = () => {
         <DialogContent>
           {selectedRequest && (
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Name:</Typography>
-                <Typography>{selectedRequest.fullName}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Email:</Typography>
-                <Typography>{selectedRequest.email}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Phone:</Typography>
-                <Typography>{selectedRequest.phoneNumber}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Purpose:</Typography>
-                <Typography>{selectedRequest.purposeOfAccess}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Whom to Meet:</Typography>
-                <Typography>{selectedRequest.whomToMeet}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Reference Name:</Typography>
-                <Typography>{selectedRequest.referenceName}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Reference Phone:</Typography>
-                <Typography>{selectedRequest.referencePhoneNumber}</Typography>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Typography variant="subtitle2">Submitted Date:</Typography>
-                <Typography>{dayjs(selectedRequest.submittedDate).format('MMMM D, YYYY')}</Typography>
-              </Grid>
+              {/* Always show basic required fields */}
+              {selectedRequest.fullName && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Name:</Typography>
+                  <Typography>{selectedRequest.fullName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.email && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Email:</Typography>
+                  <Typography>{selectedRequest.email}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.phoneNumber && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Phone:</Typography>
+                  <Typography>{selectedRequest.phoneNumber}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.purposeOfAccess && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Purpose:</Typography>
+                  <Typography>{selectedRequest.purposeOfAccess}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.whomToMeet && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Whom to Meet:</Typography>
+                  <Typography>{selectedRequest.whomToMeet}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show reference fields only if they exist */}
+              {selectedRequest.referenceName && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Reference Name:</Typography>
+                  <Typography>{selectedRequest.referenceName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.referencePhoneNumber && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Reference Phone:</Typography>
+                  <Typography>{selectedRequest.referencePhoneNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show training fields only if they exist */}
+              {selectedRequest.trainingName && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Training Name:</Typography>
+                  <Typography>{selectedRequest.trainingName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.trainerNumber && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Trainer Number:</Typography>
+                  <Typography>{selectedRequest.trainerNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show department name for training and assignment */}
+              {selectedRequest.departmentName && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Department Name:</Typography>
+                  <Typography>{selectedRequest.departmentName}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show visitor description */}
+              {selectedRequest.visitorDescription && (
+                <Grid size={12}>
+                  <Typography variant="subtitle2">Visitor Description:</Typography>
+                  <Typography>{selectedRequest.visitorDescription}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show client fields */}
+              {selectedRequest.companyName && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Company Name:</Typography>
+                  <Typography>{selectedRequest.companyName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.clientMobileNumber && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Client Mobile:</Typography>
+                  <Typography>{selectedRequest.clientMobileNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Always show submitted date and status */}
+              {selectedRequest.submittedDate && (
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="subtitle2">Submitted Date:</Typography>
+                  <Typography>{dayjs(selectedRequest.submittedDate).format('MMMM D, YYYY')}</Typography>
+                </Grid>
+              )}
               <Grid size={12}>
                 <Typography variant="subtitle2">Status:</Typography>
                 {getStatusChip(selectedRequest.status)}
               </Grid>
+              
+              {/* Conditionally show optional fields */}
               {selectedRequest.additionalNotes && (
                 <Grid size={12}>
                   <Typography variant="subtitle2">Additional Notes:</Typography>
@@ -692,14 +707,14 @@ const AdminDashboard = () => {
         <DialogActions>
           <Button onClick={() => setReviewDialogOpen(false)}>Cancel</Button>
           <Button
-            onClick={() => handleApproveReject('reject')}
+            onClick={() => handleApproveReject('rejected')}
             color="error"
             variant="outlined"
           >
             Reject
           </Button>
           <Button
-            onClick={() => handleApproveReject('approve')}
+            onClick={() => handleApproveReject('approved')}
             color="success"
             variant="contained"
           >

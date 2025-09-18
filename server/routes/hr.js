@@ -248,4 +248,152 @@ router.get('/reports/summary', async (req, res) => {
   }
 });
 
+// @route   PATCH /api/hr/requests/:id
+// @desc    Approve or reject a request (HR can now take actions)
+// @access  Private (HR/Admin)
+router.patch('/requests/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body;
+
+    console.log('HR PATCH /requests/:id - Request received:', {
+      id,
+      status,
+      rejectionReason,
+      body: req.body,
+      user: req.user.username,
+      role: req.user.role
+    });
+
+    // Validate MongoDB ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('Invalid ObjectId format:', id);
+      return res.status(400).json({ 
+        message: 'Invalid request ID format' 
+      });
+    }
+
+    // Check if status is provided
+    if (!status) {
+      console.log('No status provided');
+      return res.status(400).json({ 
+        message: 'Status is required for request updates' 
+      });
+    }
+
+    if (!['approved', 'rejected'].includes(status)) {
+      console.log('Invalid status:', status);
+      return res.status(400).json({ 
+        message: 'Status must be either "approved" or "rejected"' 
+      });
+    }
+
+    if (status === 'rejected' && !rejectionReason) {
+      console.log('Missing rejection reason for rejected status');
+      return res.status(400).json({ 
+        message: 'Rejection reason is required when rejecting a request' 
+      });
+    }
+
+    const updateData = {
+      status,
+      approvedBy: req.user.username,
+      approvedAt: new Date()
+    };
+
+    if (status === 'rejected') {
+      updateData.rejectionReason = rejectionReason;
+    }
+
+    console.log('HR attempting to update request with data:', updateData);
+
+    const request = await AccessRequest.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+
+    res.json({
+      success: true,
+      message: `Request ${status} successfully by HR`,
+      data: request
+    });
+
+  } catch (error) {
+    console.error('HR request update error:', error);
+    res.status(500).json({ message: 'Server error while updating request' });
+  }
+});
+
+// @route   PATCH /api/hr/requests/bulk
+// @desc    Bulk update multiple access requests
+// @access  Private (HR/Admin)
+router.patch('/requests/bulk', async (req, res) => {
+  try {
+    const { requestIds, status, rejectionReason } = req.body;
+
+    // Validate input
+    if (!requestIds || !Array.isArray(requestIds) || requestIds.length === 0) {
+      return res.status(400).json({ message: 'Request IDs array is required' });
+    }
+
+    if (!status || !['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Valid status (approved/rejected) is required' });
+    }
+
+    if (status === 'rejected' && !rejectionReason?.trim()) {
+      return res.status(400).json({ message: 'Rejection reason is required for rejected status' });
+    }
+
+    // Build update data
+    const updateData = {
+      status,
+      reviewedAt: new Date(),
+      reviewedBy: req.user.username
+    };
+
+    if (status === 'approved') {
+      updateData.approvedBy = req.user.username;
+      updateData.approvedAt = new Date();
+    }
+
+    if (status === 'rejected') {
+      updateData.rejectionReason = rejectionReason.trim();
+    }
+
+    console.log('HR attempting bulk update with data:', updateData);
+    console.log('Request IDs:', requestIds);
+
+    // Update multiple requests
+    const result = await AccessRequest.updateMany(
+      { 
+        _id: { $in: requestIds },
+        status: 'pending' // Only update pending requests
+      },
+      updateData
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'No pending requests found with provided IDs' });
+    }
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} request(s) ${status} successfully by HR`,
+      data: {
+        matched: result.matchedCount,
+        modified: result.modifiedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('HR bulk request update error:', error);
+    res.status(500).json({ message: 'Server error while updating requests' });
+  }
+});
+
 module.exports = router;

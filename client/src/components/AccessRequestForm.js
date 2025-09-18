@@ -10,11 +10,12 @@ const AccessRequestForm = () => {
     whomToMeet: "",
     referenceName: "",
     referencePhoneNumber: "",
+    trainingName: "",
+    trainerNumber: "",
+    departmentName: "",
+    visitorDescription: "",
     companyName: "",
-    visitDate: "",
-    visitTime: "",
-    vehicleNumber: "",
-    emergencyContact: "",
+    clientMobileNumber: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -29,21 +30,39 @@ const AccessRequestForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Submit form data to backend
+      // Prepare submit data based on purpose of access
       const submitData = {
         fullName: formData.fullName,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         purposeOfAccess: formData.purposeOfAccess,
         whomToMeet: formData.whomToMeet,
-        referenceName: formData.referenceName,
-        referencePhoneNumber: formData.referencePhoneNumber,
-        companyName: formData.companyName,
-        visitDate: formData.visitDate,
-        visitTime: formData.visitTime,
-        vehicleNumber: formData.vehicleNumber,
-        emergencyContact: formData.emergencyContact,
       };
+
+      // Add conditional fields based on purpose
+      if (formData.purposeOfAccess === 'onboarding') {
+        submitData.referenceName = formData.referenceName;
+        submitData.referencePhoneNumber = formData.referencePhoneNumber;
+      }
+
+      if (formData.purposeOfAccess === 'training') {
+        submitData.trainingName = formData.trainingName;
+        submitData.trainerNumber = formData.trainerNumber;
+        submitData.departmentName = formData.departmentName;
+      }
+
+      if (formData.purposeOfAccess === 'assignment') {
+        submitData.departmentName = formData.departmentName;
+      }
+
+      if (formData.purposeOfAccess === 'visitor') {
+        submitData.visitorDescription = formData.visitorDescription;
+      }
+
+      if (formData.purposeOfAccess === 'client') {
+        submitData.companyName = formData.companyName;
+        submitData.clientMobileNumber = formData.clientMobileNumber;
+      }
 
       const submitResponse = await fetch('http://localhost:5000/api/requests', {
         method: 'POST',
@@ -70,11 +89,12 @@ const AccessRequestForm = () => {
             whomToMeet: "",
             referenceName: "",
             referencePhoneNumber: "",
+            trainingName: "",
+            trainerNumber: "",
+            departmentName: "",
+            visitorDescription: "",
             companyName: "",
-            visitDate: "",
-            visitTime: "",
-            vehicleNumber: "",
-            emergencyContact: "",
+            clientMobileNumber: "",
           });
         }, 3000);
       } else {
@@ -157,120 +177,169 @@ const AccessRequestForm = () => {
           {/* Visit Details */}
           <div className="flex flex-col">
             <label className="text-white/80 mb-1">Purpose of Access *</label>
-            <textarea
+            <select
               name="purposeOfAccess"
               value={formData.purposeOfAccess}
               onChange={handleChange}
               required
-              rows={3}
-              className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
-              placeholder="Reason for your visit"
+              className="px-4 py-2 rounded-xl bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400"
+            >
+              <option value="" className="bg-gray-800 text-white">Select purpose</option>
+              <option value="onboarding" className="bg-gray-800 text-white">Onboarding</option>
+              <option value="assignment" className="bg-gray-800 text-white">Assignment</option>
+              <option value="interview" className="bg-gray-800 text-white">Interview</option>
+              <option value="training" className="bg-gray-800 text-white">Training</option>
+              <option value="visitor" className="bg-gray-800 text-white">Visitor</option>
+              <option value="client" className="bg-gray-800 text-white">Client</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-white/80 mb-1">Whom to Meet *</label>
+            <input
+              type="text"
+              name="whomToMeet"
+              value={formData.whomToMeet}
+              onChange={handleChange}
+              required
+              className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              placeholder="Host Name"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Whom to Meet *</label>
-              <input
-                type="text"
-                name="whomToMeet"
-                value={formData.whomToMeet}
-                onChange={handleChange}
-                required
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                placeholder="Host Name"
-              />
+          {/* Reference Fields - Only show when purpose is 'onboarding' */}
+          {formData.purposeOfAccess === 'onboarding' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Reference Name *</label>
+                <input
+                  type="text"
+                  name="referenceName"
+                  value={formData.referenceName}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'onboarding'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  placeholder="Reference Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Reference Phone *</label>
+                <input
+                  type="tel"
+                  name="referencePhoneNumber"
+                  value={formData.referencePhoneNumber}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'onboarding'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
             </div>
+          )}
+
+          {/* Training Fields - Only show when purpose is 'training' */}
+          {formData.purposeOfAccess === 'training' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Training Name *</label>
+                <input
+                  type="text"
+                  name="trainingName"
+                  value={formData.trainingName}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'training'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  placeholder="Training Program Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Trainer Number *</label>
+                <input
+                  type="tel"
+                  name="trainerNumber"
+                  value={formData.trainerNumber}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'training'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Department Name *</label>
+                <input
+                  type="text"
+                  name="departmentName"
+                  value={formData.departmentName}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'training'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  placeholder="Department Name"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Assignment Fields - Only show when purpose is 'assignment' */}
+          {formData.purposeOfAccess === 'assignment' && (
             <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Company Name</label>
+              <label className="text-white/80 mb-1">Department Name *</label>
               <input
                 type="text"
-                name="companyName"
-                value={formData.companyName}
+                name="departmentName"
+                value={formData.departmentName}
                 onChange={handleChange}
+                required={formData.purposeOfAccess === 'assignment'}
                 className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                placeholder="Your Company"
+                placeholder="Department Name"
               />
             </div>
-          </div>
+          )}
 
-          {/* Visit Schedule */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Visitor Fields - Only show when purpose is 'visitor' */}
+          {formData.purposeOfAccess === 'visitor' && (
             <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Visit Date *</label>
-              <input
-                type="date"
-                name="visitDate"
-                value={formData.visitDate}
+              <label className="text-white/80 mb-1">Description *</label>
+              <textarea
+                name="visitorDescription"
+                value={formData.visitorDescription}
                 onChange={handleChange}
-                required
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                required={formData.purposeOfAccess === 'visitor'}
+                rows="3"
+                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                placeholder="Purpose of visit description..."
               />
             </div>
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Visit Time *</label>
-              <input
-                type="time"
-                name="visitTime"
-                value={formData.visitTime}
-                onChange={handleChange}
-                required
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Additional Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Vehicle Number</label>
-              <input
-                type="text"
-                name="vehicleNumber"
-                value={formData.vehicleNumber}
-                onChange={handleChange}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                placeholder="KA 01 AB 1234"
-              />
+          {/* Client Fields - Only show when purpose is 'client' */}
+          {formData.purposeOfAccess === 'client' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Company Name *</label>
+                <input
+                  type="text"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'client'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  placeholder="Company Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Mobile Number *</label>
+                <input
+                  type="tel"
+                  name="clientMobileNumber"
+                  value={formData.clientMobileNumber}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'client'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
             </div>
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Emergency Contact</label>
-              <input
-                type="tel"
-                name="emergencyContact"
-                value={formData.emergencyContact}
-                onChange={handleChange}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-red-400"
-                placeholder="+91 98765 43210"
-              />
-            </div>
-          </div>
-
-          {/* Reference */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Reference Name</label>
-              <input
-                type="text"
-                name="referenceName"
-                value={formData.referenceName}
-                onChange={handleChange}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                placeholder="Ref Name"
-              />
-            </div>
-            <div className="flex flex-col">
-              <label className="text-white/80 mb-1">Reference Phone</label>
-              <input
-                type="tel"
-                name="referencePhoneNumber"
-                value={formData.referencePhoneNumber}
-                onChange={handleChange}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                placeholder="+91 98765 43210"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Submit */}
           <button

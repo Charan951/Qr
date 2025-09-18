@@ -33,12 +33,42 @@ const accessRequestSchema = new mongoose.Schema({
   // Reference Details
   referenceName: {
     type: String,
-    required: true,
     trim: true
   },
   referencePhoneNumber: {
     type: String,
-    required: true,
+    trim: true
+  },
+  
+  // Training Details
+  trainingName: {
+    type: String,
+    trim: true
+  },
+  trainerNumber: {
+    type: String,
+    trim: true
+  },
+  
+  // Department Details (for training and assignment)
+  departmentName: {
+    type: String,
+    trim: true
+  },
+  
+  // Visitor Details
+  visitorDescription: {
+    type: String,
+    trim: true
+  },
+  
+  // Client Details
+  companyName: {
+    type: String,
+    trim: true
+  },
+  clientMobileNumber: {
+    type: String,
     trim: true
   },
   

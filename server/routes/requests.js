@@ -14,34 +14,100 @@ router.post('/', async (req, res) => {
       purposeOfAccess,
       whomToMeet,
       referenceName,
-      referencePhoneNumber
+      referencePhoneNumber,
+      trainingName,
+      trainerNumber,
+      departmentName,
+      visitorDescription,
+      companyName,
+      clientMobileNumber
     } = req.body;
 
     // Validate required fields
-    if (!fullName || !email || !purposeOfAccess || !whomToMeet || !referenceName || !referencePhoneNumber) {
+    if (!fullName || !email || !purposeOfAccess || !whomToMeet) {
       return res.status(400).json({ 
         message: 'Please provide all required fields',
-        required: ['fullName', 'email', 'purposeOfAccess', 'whomToMeet', 'referenceName', 'referencePhoneNumber']
+        required: ['fullName', 'email', 'purposeOfAccess', 'whomToMeet']
       });
     }
 
-    // Create new access request
-    const accessRequest = new AccessRequest({
+    // Validate conditional fields based on purpose
+    if (purposeOfAccess === 'onboarding' && (!referenceName || !referencePhoneNumber)) {
+      return res.status(400).json({ 
+        message: 'Reference name and phone number are required for onboarding',
+        required: ['referenceName', 'referencePhoneNumber']
+      });
+    }
+
+    if (purposeOfAccess === 'training' && (!trainingName || !trainerNumber || !departmentName)) {
+      return res.status(400).json({ 
+        message: 'Training name, trainer number, and department name are required for training',
+        required: ['trainingName', 'trainerNumber', 'departmentName']
+      });
+    }
+
+    if (purposeOfAccess === 'assignment' && !departmentName) {
+      return res.status(400).json({ 
+        message: 'Department name is required for assignment',
+        required: ['departmentName']
+      });
+    }
+
+    if (purposeOfAccess === 'visitor' && !visitorDescription) {
+      return res.status(400).json({ 
+        message: 'Description is required for visitor',
+        required: ['visitorDescription']
+      });
+    }
+
+    if (purposeOfAccess === 'client' && (!companyName || !clientMobileNumber)) {
+      return res.status(400).json({ 
+        message: 'Company name and mobile number are required for client',
+        required: ['companyName', 'clientMobileNumber']
+      });
+    }
+
+    // Create new access request with conditional fields
+    const requestData = {
       fullName,
       email,
       phoneNumber,
       purposeOfAccess,
       whomToMeet,
-      referenceName,
-      referencePhoneNumber,
       submittedDate: new Date(),
       submittedTime: new Date().toLocaleTimeString('en-US', { 
         hour12: true,
         hour: '2-digit',
         minute: '2-digit'
       })
-    });
+    };
 
+    // Add conditional fields based on purpose
+    if (purposeOfAccess === 'onboarding') {
+      requestData.referenceName = referenceName;
+      requestData.referencePhoneNumber = referencePhoneNumber;
+    }
+
+    if (purposeOfAccess === 'training') {
+      requestData.trainingName = trainingName;
+      requestData.trainerNumber = trainerNumber;
+      requestData.departmentName = departmentName;
+    }
+
+    if (purposeOfAccess === 'assignment') {
+      requestData.departmentName = departmentName;
+    }
+
+    if (purposeOfAccess === 'visitor') {
+      requestData.visitorDescription = visitorDescription;
+    }
+
+    if (purposeOfAccess === 'client') {
+      requestData.companyName = companyName;
+      requestData.clientMobileNumber = clientMobileNumber;
+    }
+
+    const accessRequest = new AccessRequest(requestData);
     await accessRequest.save();
 
     res.status(201).json({
@@ -100,6 +166,8 @@ router.get('/status', async (req, res) => {
         whomToMeet: request.whomToMeet,
         referenceName: request.referenceName,
         referencePhoneNumber: request.referencePhoneNumber,
+        trainingName: request.trainingName,
+        trainerNumber: request.trainerNumber,
         status: request.status,
         submittedDate: request.submittedDate,
         submittedTime: request.submittedTime,

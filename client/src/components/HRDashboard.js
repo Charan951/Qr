@@ -18,6 +18,7 @@ import {
   Select,
   MenuItem,
   Alert,
+  InputAdornment,
   CircularProgress,
   Tooltip,
 } from '@mui/material';
@@ -32,6 +33,9 @@ import {
   FilterList,
   Clear,
   People,
+  Search,
+  ThumbUp,
+  ThumbDown,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
@@ -44,10 +48,14 @@ const HRDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [actionType, setActionType] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     startDate: null,
-    endDate: null,
+    search: '',
   });
   const [pagination, setPagination] = useState({
     page: 0,
@@ -55,6 +63,11 @@ const HRDashboard = () => {
     total: 0,
   });
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [bulkActionDialogOpen, setBulkActionDialogOpen] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState('');
+  const [bulkRejectionReason, setBulkRejectionReason] = useState('');
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,8 +98,9 @@ const HRDashboard = () => {
         params,
       });
 
-      setRequests(response.data.requests);
-      setPagination(prev => ({ ...prev, total: response.data.total }));
+      setRequests(response.data.data);
+      setPagination(prev => ({ ...prev, total: response.data.pagination.totalRequests }));
+      setStats(response.data.counts);
     } catch (error) {
       console.error('Error fetching requests:', error);
       if (error.response?.status === 401) {
@@ -98,12 +112,10 @@ const HRDashboard = () => {
   };
 
   const fetchStats = async () => {
+    // Stats are now fetched with requests, so this function is no longer needed
+    // but keeping it for compatibility
     try {
-      const token = localStorage.getItem('hrToken');
-      const response = await axios.get('http://localhost:5000/api/hr/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStats(response.data);
+      // Stats are already set in fetchRequests
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -120,12 +132,119 @@ const HRDashboard = () => {
     setViewDialogOpen(true);
   };
 
+  const handleActionRequest = (request, action) => {
+    setSelectedRequest(request);
+    setActionType(action);
+    setRejectionReason('');
+    setActionDialogOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!selectedRequest || !actionType) return;
+
+    if (actionType === 'rejected' && !rejectionReason.trim()) {
+      setMessage({ type: 'error', text: 'Rejection reason is required' });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('hrToken');
+      const payload = {
+        status: actionType,
+        ...(actionType === 'rejected' && { rejectionReason: rejectionReason.trim() })
+      };
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/hr/requests/${selectedRequest._id}`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `Request ${actionType} successfully!` 
+        });
+        setActionDialogOpen(false);
+        fetchRequests(); // Refresh the data
+      }
+    } catch (error) {
+      console.error('Error updating request:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to update request' 
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkAction = (action) => {
+    if (selectedRows.length === 0) {
+      setMessage({ type: 'error', text: 'Please select at least one request' });
+      return;
+    }
+    setBulkActionType(action);
+    setBulkRejectionReason('');
+    setBulkActionDialogOpen(true);
+  };
+
+  const handleConfirmBulkAction = async () => {
+    if (!bulkActionType || selectedRows.length === 0) return;
+
+    if (bulkActionType === 'rejected' && !bulkRejectionReason.trim()) {
+      setMessage({ type: 'error', text: 'Rejection reason is required for bulk rejection' });
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const token = localStorage.getItem('hrToken');
+      const payload = {
+        requestIds: selectedRows,
+        status: bulkActionType,
+        ...(bulkActionType === 'rejected' && { rejectionReason: bulkRejectionReason.trim() })
+      };
+
+      const response = await axios.patch(
+        'http://localhost:5000/api/hr/requests/bulk',
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `${selectedRows.length} request(s) ${bulkActionType} successfully!` 
+        });
+        setBulkActionDialogOpen(false);
+        setSelectedRows([]);
+        fetchRequests(); // Refresh the data
+        fetchStats(); // Refresh stats
+      }
+    } catch (error) {
+      console.error('Error updating requests:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to update requests' 
+      });
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({
       status: '',
       startDate: null,
-      endDate: null,
+      search: '',
     });
+    setPagination(prev => ({ ...prev, page: 0 }));
   };
 
   const getStatusChip = (status) => {
@@ -167,17 +286,41 @@ const HRDashboard = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 200,
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title="View Details">
-          <IconButton
-            size="small"
-            onClick={() => handleViewRequest(params.row)}
-          >
-            <Visibility />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="View Details">
+            <IconButton
+              size="small"
+              onClick={() => handleViewRequest(params.row)}
+            >
+              <Visibility />
+            </IconButton>
+          </Tooltip>
+          {params.row.status === 'pending' && (
+            <>
+              <Tooltip title="Approve Request">
+                <IconButton
+                  size="small"
+                  color="success"
+                  onClick={() => handleActionRequest(params.row, 'approved')}
+                >
+                  <ThumbUp />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Reject Request">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleActionRequest(params.row, 'rejected')}
+                >
+                  <ThumbDown />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       ),
     },
   ];
@@ -215,11 +358,10 @@ const HRDashboard = () => {
         </Alert>
       )}
 
-      {/* Read-only Notice */}
-      <Alert severity="info" sx={{ mb: 3 }}>
+      {/* HR Action Notice */}
+      <Alert severity="success" sx={{ mb: 3 }}>
         <Typography variant="body2">
-          <strong>HR View:</strong> You have read-only access to view access requests and statistics. 
-          Contact an administrator for request approvals or modifications.
+          <strong>HR Actions Enabled:</strong> You can now approve or reject pending access requests directly from this dashboard.
         </Typography>
       </Alert>
 
@@ -228,48 +370,68 @@ const HRDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Total Requests
-              </Typography>
-              <Typography variant="h4">
-                {stats.total || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Total Requests
+                  </Typography>
+                  <Typography variant="h4">
+                    {stats.total || 0}
+                  </Typography>
+                </Box>
+                <Dashboard sx={{ fontSize: 40, color: 'primary.main', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Pending
-              </Typography>
-              <Typography variant="h4" color="warning.main">
-                {stats.pending || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Pending
+                  </Typography>
+                  <Typography variant="h4" color="warning.main">
+                    {stats.pending || 0}
+                  </Typography>
+                </Box>
+                <Pending sx={{ fontSize: 40, color: 'warning.main', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Approved
-              </Typography>
-              <Typography variant="h4" color="success.main">
-                {stats.approved || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Approved
+                  </Typography>
+                  <Typography variant="h4" color="success.main">
+                    {stats.approved || 0}
+                  </Typography>
+                </Box>
+                <CheckCircle sx={{ fontSize: 40, color: 'success.main', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Rejected
-              </Typography>
-              <Typography variant="h4" color="error.main">
-                {stats.rejected || 0}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Rejected
+                  </Typography>
+                  <Typography variant="h4" color="error.main">
+                    {stats.rejected || 0}
+                  </Typography>
+                </Box>
+                <Cancel sx={{ fontSize: 40, color: 'error.main', opacity: 0.7 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -310,19 +472,27 @@ const HRDashboard = () => {
             </Grid>
             
             <Grid item xs={12} sm={6} md={4}>
-              <DatePicker
-                label="Start Date"
-                value={filters.startDate}
-                onChange={(newValue) => setFilters(prev => ({ ...prev, startDate: newValue }))}
-                renderInput={(params) => <TextField {...params} size="small" fullWidth />}
+              <TextField
+                fullWidth
+                size="small"
+                label="Search (Name/Email)"
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
             
             <Grid item xs={12} sm={6} md={4}>
               <DatePicker
-                label="End Date"
-                value={filters.endDate}
-                onChange={(newValue) => setFilters(prev => ({ ...prev, endDate: newValue }))}
+                label="Date Filter"
+                value={filters.startDate}
+                onChange={(newValue) => setFilters(prev => ({ ...prev, startDate: newValue }))}
                 renderInput={(params) => <TextField {...params} size="small" fullWidth />}
               />
             </Grid>
@@ -333,9 +503,33 @@ const HRDashboard = () => {
       {/* Requests Table */}
       <Card>
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Access Requests (Read-Only)
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              Access Requests Management
+            </Typography>
+            {selectedRows.length > 0 && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  onClick={() => handleBulkAction('approved')}
+                  startIcon={<ThumbUp />}
+                >
+                  Approve Selected ({selectedRows.length})
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  size="small"
+                  onClick={() => handleBulkAction('rejected')}
+                  startIcon={<ThumbDown />}
+                >
+                  Reject Selected ({selectedRows.length})
+                </Button>
+              </Box>
+            )}
+          </Box>
           <DataGrid
             rows={requests}
             columns={columns}
@@ -349,6 +543,9 @@ const HRDashboard = () => {
             onPageSizeChange={(newPageSize) => setPagination(prev => ({ ...prev, pageSize: newPageSize }))}
             getRowId={(row) => row._id}
             autoHeight
+            checkboxSelection
+            onSelectionModelChange={(newSelection) => setSelectedRows(newSelection)}
+            selectionModel={selectedRows}
             disableSelectionOnClick
           />
         </CardContent>
@@ -356,50 +553,121 @@ const HRDashboard = () => {
 
       {/* View Request Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Request Details (Read-Only)</DialogTitle>
+        <DialogTitle>Request Details</DialogTitle>
         <DialogContent>
           {selectedRequest && (
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Request ID:</Typography>
-                <Typography>{selectedRequest.requestId}</Typography>
-              </Grid>
+              {/* Always show request ID and status */}
+              {selectedRequest.requestId && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Request ID:</Typography>
+                  <Typography>{selectedRequest.requestId}</Typography>
+                </Grid>
+              )}
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2">Status:</Typography>
                 {getStatusChip(selectedRequest.status)}
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Name:</Typography>
-                <Typography>{selectedRequest.fullName}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Email:</Typography>
-                <Typography>{selectedRequest.email}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Phone:</Typography>
-                <Typography>{selectedRequest.phoneNumber || 'N/A'}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Whom to Meet:</Typography>
-                <Typography>{selectedRequest.whomToMeet}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Purpose:</Typography>
-                <Typography>{selectedRequest.purposeOfAccess}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Reference Name:</Typography>
-                <Typography>{selectedRequest.referenceName}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Reference Phone:</Typography>
-                <Typography>{selectedRequest.referencePhoneNumber}</Typography>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="subtitle2">Submitted:</Typography>
-                <Typography>{dayjs(selectedRequest.submittedDate).format('MMMM D, YYYY')} at {selectedRequest.submittedTime}</Typography>
-              </Grid>
+              
+              {/* Basic required fields - only show if filled */}
+              {selectedRequest.fullName && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Name:</Typography>
+                  <Typography>{selectedRequest.fullName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.email && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Email:</Typography>
+                  <Typography>{selectedRequest.email}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.phoneNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Phone:</Typography>
+                  <Typography>{selectedRequest.phoneNumber}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.whomToMeet && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Whom to Meet:</Typography>
+                  <Typography>{selectedRequest.whomToMeet}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.purposeOfAccess && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Purpose:</Typography>
+                  <Typography>{selectedRequest.purposeOfAccess}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show reference fields only if they exist */}
+              {selectedRequest.referenceName && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Reference Name:</Typography>
+                  <Typography>{selectedRequest.referenceName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.referencePhoneNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Reference Phone:</Typography>
+                  <Typography>{selectedRequest.referencePhoneNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show training fields only if they exist */}
+              {selectedRequest.trainingName && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Training Name:</Typography>
+                  <Typography>{selectedRequest.trainingName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.trainerNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Trainer Number:</Typography>
+                  <Typography>{selectedRequest.trainerNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show department name for training and assignment */}
+              {selectedRequest.departmentName && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Department Name:</Typography>
+                  <Typography>{selectedRequest.departmentName}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show visitor description */}
+              {selectedRequest.visitorDescription && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2">Visitor Description:</Typography>
+                  <Typography>{selectedRequest.visitorDescription}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show client fields */}
+              {selectedRequest.companyName && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Company Name:</Typography>
+                  <Typography>{selectedRequest.companyName}</Typography>
+                </Grid>
+              )}
+              {selectedRequest.clientMobileNumber && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Client Mobile:</Typography>
+                  <Typography>{selectedRequest.clientMobileNumber}</Typography>
+                </Grid>
+              )}
+              
+              {/* Always show submitted date */}
+              {selectedRequest.submittedDate && (
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2">Submitted:</Typography>
+                  <Typography>{dayjs(selectedRequest.submittedDate).format('MMMM D, YYYY')} {selectedRequest.submittedTime && `at ${selectedRequest.submittedTime}`}</Typography>
+                </Grid>
+              )}
+              
+              {/* Conditionally show optional fields */}
               {selectedRequest.additionalNotes && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Additional Notes:</Typography>
@@ -422,7 +690,119 @@ const HRDashboard = () => {
           )}
         </DialogContent>
         <DialogActions>
+          {selectedRequest && selectedRequest.status === 'pending' && (
+            <>
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<ThumbUp />}
+                onClick={() => handleActionRequest(selectedRequest, 'approved')}
+              >
+                Approve
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={<ThumbDown />}
+                onClick={() => handleActionRequest(selectedRequest, 'rejected')}
+              >
+                Reject
+              </Button>
+            </>
+          )}
           <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Action Confirmation Dialog */}
+      <Dialog open={actionDialogOpen} onClose={() => setActionDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {actionType === 'approved' ? 'Approve Request' : 'Reject Request'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to {actionType === 'approved' ? 'approve' : 'reject'} this request?
+          </Typography>
+          
+          {selectedRequest && (
+            <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+              <Typography variant="subtitle2">Request Details:</Typography>
+              <Typography variant="body2">ID: {selectedRequest.requestId}</Typography>
+              <Typography variant="body2">Name: {selectedRequest.fullName}</Typography>
+              <Typography variant="body2">Purpose: {selectedRequest.purposeOfAccess}</Typography>
+            </Box>
+          )}
+
+          {actionType === 'rejected' && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Rejection Reason *"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Please provide a reason for rejection..."
+              required
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActionDialogOpen(false)} disabled={actionLoading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={actionType === 'approved' ? 'success' : 'error'}
+            onClick={handleConfirmAction}
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={16} /> : null}
+          >
+            {actionLoading ? 'Processing...' : `Confirm ${actionType === 'approved' ? 'Approval' : 'Rejection'}`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <Dialog open={bulkActionDialogOpen} onClose={() => setBulkActionDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {bulkActionType === 'approved' ? 'Bulk Approve Requests' : 'Bulk Reject Requests'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to {bulkActionType === 'approved' ? 'approve' : 'reject'} {selectedRows.length} selected request(s)?
+          </Typography>
+          
+          <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+            <Typography variant="subtitle2">Selected Requests: {selectedRows.length}</Typography>
+            <Typography variant="body2">This action will be applied to all selected requests.</Typography>
+          </Box>
+
+          {bulkActionType === 'rejected' && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Rejection Reason *"
+              value={bulkRejectionReason}
+              onChange={(e) => setBulkRejectionReason(e.target.value)}
+              placeholder="Please provide a reason for bulk rejection..."
+              required
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkActionDialogOpen(false)} disabled={bulkActionLoading}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={bulkActionType === 'approved' ? 'success' : 'error'}
+            onClick={handleConfirmBulkAction}
+            disabled={bulkActionLoading}
+            startIcon={bulkActionLoading ? <CircularProgress size={16} /> : null}
+          >
+            {bulkActionLoading ? 'Processing...' : `Confirm Bulk ${bulkActionType === 'approved' ? 'Approval' : 'Rejection'}`}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
