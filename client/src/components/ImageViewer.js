@@ -1,4 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Box,
+  Typography,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import { Close, ZoomIn, ZoomOut, RotateLeft, RotateRight } from '@mui/icons-material';
+import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 const ImageViewer = ({ requestId, images: propImages }) => {
   const [images, setImages] = useState(propImages || []);
@@ -27,7 +39,7 @@ const ImageViewer = ({ requestId, images: propImages }) => {
       
       console.log('ImageViewer: Using token:', token ? 'Token found' : 'No token');
       
-      const response = await fetch(`http://localhost:5000/api/images/request/${requestId}`, {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.IMAGES_REQUEST, requestId), {
         headers: token ? {
           'Authorization': `Bearer ${token}`
         } : {}
@@ -63,7 +75,7 @@ const ImageViewer = ({ requestId, images: propImages }) => {
                    localStorage.getItem('hrToken') || 
                    localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5000/api/images/${filename}`, {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.IMAGES, filename), {
         method: 'DELETE',
         headers: token ? {
           'Authorization': `Bearer ${token}`

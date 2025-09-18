@@ -1,5 +1,81 @@
 import React, { useState, useRef, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  Grid,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material';
+import {
+  CameraAlt,
+  Delete,
+  CloudUpload,
+  Refresh,
+  Close,
+} from '@mui/icons-material';
 import Webcam from 'react-webcam';
+import { getApiUrl, API_ENDPOINTS } from '../config/api';
+
+// Animation variants for camera interactions
+const cameraVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: { duration: 0.5, ease: "easeOut" }
+  },
+  capturing: {
+    scale: [1, 0.95, 1],
+    transition: { duration: 0.3 }
+  }
+};
+
+const buttonVariants = {
+  idle: { scale: 1 },
+  hover: { 
+    scale: 1.05,
+    transition: { duration: 0.2 }
+  },
+  tap: { 
+    scale: 0.95,
+    transition: { duration: 0.1 }
+  },
+  pulse: {
+    scale: [1, 1.1, 1],
+    transition: { duration: 1, repeat: Infinity }
+  }
+};
+
+const flashVariants = {
+  flash: {
+    opacity: [0, 1, 0],
+    transition: { duration: 0.3 }
+  }
+};
+
+const uploadVariants = {
+  uploading: {
+    rotate: 360,
+    transition: { duration: 1, repeat: Infinity, ease: "linear" }
+  },
+  success: {
+    scale: [1, 1.2, 1],
+    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
+    transition: { duration: 0.6 }
+  },
+  error: {
+    x: [-10, 10, -10, 10, 0],
+    backgroundColor: ["#f44336", "#ef5350", "#f44336"],
+    transition: { duration: 0.4 }
+  }
+};
 
 const ImageCapture = ({ onImageCapture, requestId }) => {
   const webcamRef = useRef(null);
@@ -70,9 +146,9 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
                      localStorage.getItem('token');
         
         console.log('Token found:', !!token);
-        console.log('Making upload request to:', 'http://localhost:5000/api/images/upload');
+        console.log('Making upload request to:', getApiUrl(API_ENDPOINTS.UPLOAD));
         
-        const response = await fetch('http://localhost:5000/api/images/upload', {
+        const response = await fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
           method: 'POST',
           headers: token ? {
             'Authorization': `Bearer ${token}`
@@ -116,15 +192,15 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">Live Image Capture</h3>
+    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+      <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-800">Live Image Capture</h3>
       
       <div className="space-y-4">
         {!isCapturing && !capturedImage && (
           <div className="text-center">
             <button
               onClick={() => setIsCapturing(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
             >
               Start Camera
             </button>
@@ -139,19 +215,19 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
-                className="w-full max-w-md mx-auto rounded-lg"
+                className="w-full max-w-xs sm:max-w-md mx-auto rounded-lg"
               />
             </div>
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={capture}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Capture Photo
               </button>
               <button
                 onClick={() => setIsCapturing(false)}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Cancel
               </button>
@@ -165,27 +241,27 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
               <img
                 src={capturedImage}
                 alt="Captured"
-                className="w-full max-w-md mx-auto rounded-lg border-2 border-gray-300"
+                className="w-full max-w-xs sm:max-w-md mx-auto rounded-lg border-2 border-gray-300"
               />
             </div>
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-2 sm:space-x-4">
               <button
                 onClick={uploadImage}
                 disabled={isUploading}
-                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
               >
                 {isUploading ? 'Uploading...' : 'Upload Image'}
               </button>
               <button
                 onClick={retake}
                 disabled={isUploading}
-                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Retake
               </button>
             </div>
             {uploadStatus && (
-              <div className={`text-center p-2 rounded ${
+              <div className={`text-center p-2 rounded text-sm sm:text-base ${
                 uploadStatus.includes('successful') 
                   ? 'bg-green-100 text-green-800' 
                   : uploadStatus.includes('failed') 

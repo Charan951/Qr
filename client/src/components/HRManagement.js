@@ -30,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 const HRManagement = () => {
   const [hrUsers, setHrUsers] = useState([]);
@@ -54,7 +55,7 @@ const HRManagement = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/admin/hr-users', {
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.ADMIN_HR_USERS), {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -103,7 +104,7 @@ const HRManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await axios.delete(`http://localhost:5000/api/admin/hr-users/${userId}`, {
+      const response = await axios.delete(buildApiUrl(API_ENDPOINTS.ADMIN_HR_USERS, userId), {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -158,14 +159,14 @@ const HRManagement = () => {
         }
 
         response = await axios.put(
-          `http://localhost:5000/api/admin/hr-users/${selectedUser._id}`,
+          buildApiUrl(API_ENDPOINTS.ADMIN_HR_USERS, selectedUser._id),
           updateData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         // Create new user
         response = await axios.post(
-          'http://localhost:5000/api/admin/hr-users',
+          getApiUrl(API_ENDPOINTS.ADMIN_HR_USERS),
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );

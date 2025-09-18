@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
   Card,
@@ -43,6 +44,65 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import HRManagement from './HRManagement';
 import ImageViewer from './ImageViewer';
+import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
+
+// Animation variants for micro-interactions and feedback
+const microInteractionVariants = {
+  tap: { scale: 0.95 },
+  hover: { scale: 1.05, transition: { duration: 0.2 } },
+  focus: { scale: 1.02, boxShadow: "0 0 0 3px rgba(25, 118, 210, 0.3)" }
+};
+
+const feedbackVariants = {
+  success: {
+    scale: [1, 1.1, 1],
+    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
+    transition: { duration: 0.6 }
+  },
+  error: {
+    x: [-10, 10, -10, 10, 0],
+    transition: { duration: 0.4 }
+  },
+  loading: {
+    rotate: 360,
+    transition: { duration: 1, repeat: Infinity, ease: "linear" }
+  }
+};
+
+const chipVariants = {
+  approved: {
+    scale: [1, 1.2, 1],
+    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
+    transition: { duration: 0.5 }
+  },
+  rejected: {
+    scale: [1, 1.2, 1],
+    backgroundColor: ["#f44336", "#ef5350", "#f44336"],
+    transition: { duration: 0.5 }
+  },
+  pending: {
+    scale: [1, 1.1, 1],
+    transition: { duration: 0.3, repeat: Infinity, repeatDelay: 2 }
+  }
+};
+
+const cardHoverVariants = {
+  rest: { scale: 1, y: 0 },
+  hover: { 
+    scale: 1.02, 
+    y: -5,
+    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+    transition: { duration: 0.3 }
+  }
+};
+
+const buttonPulseVariants = {
+  rest: { scale: 1 },
+  pulse: {
+    scale: [1, 1.05, 1],
+    transition: { duration: 0.6, repeat: Infinity, repeatDelay: 3 }
+  }
+};
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -101,7 +161,7 @@ const AdminDashboard = () => {
       };
       console.log('fetchRequests - Request params:', params);
 
-      const response = await axios.get('http://localhost:5000/api/admin/requests', {
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.ADMIN_REQUESTS), {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -137,7 +197,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/admin/dashboard/stats', {
+      const response = await axios.get(getApiUrl(API_ENDPOINTS.ADMIN_STATS), {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStats(response.data);
@@ -174,7 +234,7 @@ const AdminDashboard = () => {
       }
       
       await axios.patch(
-        `http://localhost:5000/api/admin/requests/${selectedRequest._id}`,
+        buildApiUrl(API_ENDPOINTS.ADMIN_REQUESTS, selectedRequest._id),
         requestData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -198,7 +258,7 @@ const AdminDashboard = () => {
   const handleExportExcel = async (type, params = {}) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`http://localhost:5000/api/admin/export/${type}`, {
+      const response = await axios.get(buildApiUrl(API_ENDPOINTS.ADMIN_EXPORT, type), {
         headers: { Authorization: `Bearer ${token}` },
         params,
         responseType: 'blob',
