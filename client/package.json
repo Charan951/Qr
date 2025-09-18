@@ -27,13 +27,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:dev": "set REACT_APP_API_BASE_URL=http://localhost:5000 && react-scripts start",
-    "start:staging": "set REACT_APP_API_BASE_URL=https://your-render-backend-staging.onrender.com && react-scripts start",
-    "start:prod": "set REACT_APP_API_BASE_URL=https://your-render-backend.onrender.com && react-scripts start",
     "build": "react-scripts build",
-    "build:dev": "set REACT_APP_API_BASE_URL=http://localhost:5000 && react-scripts build",
-    "build:staging": "set REACT_APP_API_BASE_URL=https://your-render-backend-staging.onrender.com && react-scripts build",
-    "build:prod": "set REACT_APP_API_BASE_URL=https://your-render-backend.onrender.com && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
