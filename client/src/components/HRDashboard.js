@@ -21,6 +21,8 @@ import {
   InputAdornment,
   CircularProgress,
   Tooltip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import {
@@ -36,14 +38,19 @@ import {
   Search,
   ThumbUp,
   ThumbDown,
+  Message,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ImageViewer from './ImageViewer';
+import MessageCenter from './MessageCenter';
+import { Badge } from '@mui/material';
 
 const HRDashboard = () => {
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [unreadCount, setUnreadCount] = useState(0);
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -81,6 +88,7 @@ const HRDashboard = () => {
 
     fetchRequests();
     fetchStats();
+    fetchUnreadCount();
   }, [navigate, filters, pagination.page, pagination.pageSize]);
 
   const fetchRequests = async () => {
@@ -119,6 +127,19 @@ const HRDashboard = () => {
       // Stats are already set in fetchRequests
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('hrToken');
+      const response = await axios.get('http://localhost:5000/api/messages/unread-count', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnreadCount(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   };
 
@@ -359,6 +380,36 @@ const HRDashboard = () => {
         </Alert>
       )}
 
+      {/* Navigation Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentView} onChange={(e, newValue) => {
+          setCurrentView(newValue);
+          // Refresh unread count when switching to messages tab
+          if (newValue === 'messages') {
+            setTimeout(() => fetchUnreadCount(), 500); // Small delay to allow MessageCenter to mark messages as read
+          }
+        }}>
+          <Tab 
+            label="Dashboard" 
+            value="dashboard" 
+            icon={<Dashboard />} 
+            iconPosition="start"
+          />
+          <Tab 
+            label="Messages" 
+            value="messages" 
+            icon={
+              <Badge badgeContent={unreadCount} color="error" max={99}>
+                <Message />
+              </Badge>
+            } 
+            iconPosition="start"
+          />
+        </Tabs>
+      </Box>
+
+      {currentView === 'dashboard' ? (
+        <>
       {/* HR Action Notice */}
       <Alert severity="success" sx={{ mb: 3 }}>
         <Typography variant="body2">
@@ -812,6 +863,10 @@ const HRDashboard = () => {
           </Button>
         </DialogActions>
       </Dialog>
+        </>
+      ) : (
+        <MessageCenter userRole="hr" onUnreadCountChange={fetchUnreadCount} />
+      )}
     </Box>
   );
 };

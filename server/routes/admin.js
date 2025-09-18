@@ -3,7 +3,9 @@ const XLSX = require('xlsx');
 const moment = require('moment');
 const AccessRequest = require('../models/AccessRequest');
 const User = require('../models/User');
+const Message = require('../models/Message');
 const { auth, adminAuth } = require('../middleware/auth');
+const { sendAccessRequestNotification, sendApproverNotification } = require('../services/emailService');
 const router = express.Router();
 
 // Apply auth middleware to all admin routes
@@ -189,6 +191,79 @@ router.patch('/requests/:id', async (req, res) => {
 
     if (!request) {
       return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Send email notifications and create messages
+    try {
+      // Send email to the user who made the request
+      await sendAccessRequestNotification(
+        request.email,
+        request.fullName,
+        status,
+        'Admin',
+        req.user.username
+      );
+
+      // Send confirmation email to the admin who took the action
+      const adminUser = await User.findOne({ username: req.user.username });
+      if (adminUser && adminUser.email) {
+        await sendApproverNotification(
+          adminUser.email,
+          req.user.username,
+          request.fullName,
+          status,
+          {
+            email: request.email,
+            purpose: request.purposeOfAccess,
+            whomToMeet: request.whomToMeet
+          }
+        );
+      }
+
+      // Send notification emails to all HR users
+      const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email');
+      for (const hrUser of hrUsers) {
+        if (hrUser.email) {
+          await sendApproverNotification(
+            hrUser.email,
+            req.user.username,
+            request.fullName,
+            status,
+            {
+              email: request.email,
+              purpose: request.purposeOfAccess,
+              whomToMeet: request.whomToMeet
+            }
+          );
+        }
+      }
+
+      // Create message for both admin and HR to see
+      if (status === 'approved') {
+        await Message.createApprovalMessage({
+          userName: request.fullName,
+          userEmail: request.email,
+          approverName: req.user.username,
+          approverRole: 'admin',
+          requestId: request._id,
+          userId: request._id
+        });
+      } else {
+        await Message.createRejectionMessage({
+          userName: request.fullName,
+          userEmail: request.email,
+          approverName: req.user.username,
+          approverRole: 'admin',
+          requestId: request._id,
+          userId: request._id,
+          reason: rejectionReason
+        });
+      }
+
+      console.log('Email notifications and messages sent successfully');
+    } catch (emailError) {
+      console.error('Error sending notifications:', emailError);
+      // Don't fail the request update if email fails
     }
 
     res.json({

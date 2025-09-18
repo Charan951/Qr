@@ -36,13 +36,16 @@ import {
   FilterList,
   Clear,
   People,
+  Message,
 } from '@mui/icons-material';
+import { Badge } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import HRManagement from './HRManagement';
 import ImageViewer from './ImageViewer';
+import MessageCenter from './MessageCenter';
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -53,6 +56,7 @@ const AdminDashboard = () => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'hr-management'
+  const [unreadCount, setUnreadCount] = useState(0);
   const [filters, setFilters] = useState({
     status: '',
     startDate: null,
@@ -83,6 +87,7 @@ const AdminDashboard = () => {
     console.log('Calling fetchRequests and fetchStats');
     fetchRequests();
     fetchStats();
+    fetchUnreadCount();
   }, [navigate, filters, pagination.page, pagination.pageSize]);
 
   const fetchRequests = async () => {
@@ -143,6 +148,19 @@ const AdminDashboard = () => {
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await axios.get('http://localhost:5000/api/messages/unread-count', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnreadCount(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      setUnreadCount(0);
     }
   };
 
@@ -282,7 +300,13 @@ const AdminDashboard = () => {
 
       {/* Navigation Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={currentView} onChange={(e, newValue) => setCurrentView(newValue)}>
+        <Tabs value={currentView} onChange={(e, newValue) => {
+          setCurrentView(newValue);
+          // Refresh unread count when switching to messages tab
+          if (newValue === 'messages') {
+            setTimeout(() => fetchUnreadCount(), 500); // Small delay to allow MessageCenter to mark messages as read
+          }
+        }}>
           <Tab 
             label="Dashboard" 
             value="dashboard" 
@@ -293,6 +317,16 @@ const AdminDashboard = () => {
             label="HR Management" 
             value="hr-management" 
             icon={<People />} 
+            iconPosition="start"
+          />
+          <Tab 
+            label="Messages" 
+            value="messages" 
+            icon={
+              <Badge badgeContent={unreadCount} color="error" max={99}>
+                <Message />
+              </Badge>
+            } 
             iconPosition="start"
           />
         </Tabs>
@@ -730,8 +764,10 @@ const AdminDashboard = () => {
         </DialogActions>
       </Dialog>
         </>
-      ) : (
+      ) : currentView === 'hr-management' ? (
         <HRManagement />
+      ) : (
+        <MessageCenter userRole="admin" onUnreadCountChange={fetchUnreadCount} />
       )}
     </Box>
   );

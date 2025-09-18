@@ -1,6 +1,9 @@
 const express = require('express');
 const AccessRequest = require('../models/AccessRequest');
+const User = require('../models/User');
+const Message = require('../models/Message');
 const { auth, adminOrHRAuth } = require('../middleware/auth');
+const { sendAccessRequestNotification, sendApproverNotification } = require('../services/emailService');
 const router = express.Router();
 
 // Apply auth middleware to all HR routes
@@ -315,6 +318,79 @@ router.patch('/requests/:id', async (req, res) => {
 
     if (!request) {
       return res.status(404).json({ message: 'Request not found' });
+    }
+
+    // Send email notifications and create messages
+    try {
+      // Send email to the user who made the request
+      await sendAccessRequestNotification(
+        request.email,
+        request.fullName,
+        status,
+        'HR',
+        req.user.username
+      );
+
+      // Send confirmation email to the HR who took the action
+      const hrUser = await User.findOne({ username: req.user.username });
+      if (hrUser && hrUser.email) {
+        await sendApproverNotification(
+          hrUser.email,
+          req.user.username,
+          request.fullName,
+          status,
+          {
+            email: request.email,
+            purpose: request.purposeOfAccess,
+            whomToMeet: request.whomToMeet
+          }
+        );
+      }
+
+      // Send notification emails to all admin users
+      const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email');
+      for (const adminUser of adminUsers) {
+        if (adminUser.email) {
+          await sendApproverNotification(
+            adminUser.email,
+            req.user.username,
+            request.fullName,
+            status,
+            {
+              email: request.email,
+              purpose: request.purposeOfAccess,
+              whomToMeet: request.whomToMeet
+            }
+          );
+        }
+      }
+
+      // Create message for both admin and HR to see
+      if (status === 'approved') {
+        await Message.createApprovalMessage({
+          userName: request.fullName,
+          userEmail: request.email,
+          approverName: req.user.username,
+          approverRole: 'hr',
+          requestId: request._id,
+          userId: request._id
+        });
+      } else {
+        await Message.createRejectionMessage({
+          userName: request.fullName,
+          userEmail: request.email,
+          approverName: req.user.username,
+          approverRole: 'hr',
+          requestId: request._id,
+          userId: request._id,
+          reason: rejectionReason
+        });
+      }
+
+      console.log('Email notifications and messages sent successfully');
+    } catch (emailError) {
+      console.error('Error sending notifications:', emailError);
+      // Don't fail the request update if email fails
     }
 
     res.json({

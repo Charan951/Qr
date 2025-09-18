@@ -48,6 +48,7 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/hr', require('./routes/hr'));
+app.use('/api/messages', require('./routes/messages'));
 app.use('/api', require('./routes/upload'));
 app.use('/api/images', require('./routes/images'));
 
