@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FiUser, FiPhone, FiMail, FiUserCheck } from "react-icons/fi";
+import ImageCapture from "./ImageCapture";
 
 const AccessRequestForm = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ const AccessRequestForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submittedRequestId, setSubmittedRequestId] = useState(null);
+  const [capturedImages, setCapturedImages] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,12 +90,21 @@ const AccessRequestForm = () => {
       if (submitResponse.ok) {
         const result = await submitResponse.json();
         console.log('Form submitted successfully:', result);
+        const requestId = result.requestId || result.data.id;
+        setSubmittedRequestId(requestId);
+        
+        // Upload captured images if any exist
+        if (capturedImages.length > 0) {
+          await uploadCapturedImages(requestId);
+        }
+        
         setIsSubmitting(false);
         setShowSuccess(true);
         
         // Reset form after success
         setTimeout(() => {
           setShowSuccess(false);
+          setCapturedImages([]);
           setFormData({
             fullName: "",
             phoneNumber: "",
@@ -125,13 +137,58 @@ const AccessRequestForm = () => {
     }
   };
 
+  const uploadCapturedImages = async (requestId) => {
+    for (const imageData of capturedImages) {
+      try {
+        const file = dataURLtoFile(imageData, `capture-${Date.now()}.jpg`);
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('requestId', requestId);
+
+        const token = localStorage.getItem('adminToken') || 
+                     localStorage.getItem('hrToken') || 
+                     localStorage.getItem('token');
+
+        await fetch('http://localhost:5000/api/images/upload', {
+          method: 'POST',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {},
+          body: formData
+        });
+      } catch (error) {
+        console.error('Error uploading image:', error);
+      }
+    }
+  };
+
+  const dataURLtoFile = (dataurl, filename) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const handleImageCapture = (imageUrl) => {
+    setCapturedImages(prev => [...prev, imageUrl]);
+  };
+
   if (showSuccess)
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-r from-blue-700 to-purple-700 text-white">
-        <div className="bg-white/10 backdrop-blur-md rounded-3xl p-12 shadow-xl text-center">
-          <div className="text-6xl mb-4 animate-pulse">✅</div>
-          <h1 className="text-3xl font-semibold mb-2">Request Submitted!</h1>
-          <p className="text-white/80">You will be notified once approved.</p>
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-r from-blue-700 to-purple-700 text-white p-4">
+        <div className="max-w-4xl w-full space-y-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-12 shadow-xl text-center">
+            <div className="text-6xl mb-4 animate-pulse">✅</div>
+            <h1 className="text-3xl font-semibold mb-2">Request Submitted!</h1>
+            <p className="text-white/80 mb-6">You will be notified once approved.</p>
+            
+
+          </div>
         </div>
       </div>
     );
@@ -415,6 +472,15 @@ const AccessRequestForm = () => {
               </div>
             </div>
           )}
+
+          {/* Live Image Capture */}
+          <div className="mt-6">
+            <h3 className="text-white/80 mb-4 text-lg font-semibold">Optional: Capture Your Photo</h3>
+            <p className="text-white/60 mb-4 text-sm">You can capture a photo for identification purposes</p>
+            <ImageCapture 
+              onImageCapture={handleImageCapture}
+            />
+          </div>
 
           {/* Submit */}
           <button

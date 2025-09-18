@@ -116,7 +116,13 @@ const accessRequestSchema = new mongoose.Schema({
   rejectionReason: {
     type: String,
     trim: true
-  }
+  },
+  
+  // Image Storage
+  images: [{
+    type: String,
+    trim: true
+  }]
 }, {
   timestamps: true
 });

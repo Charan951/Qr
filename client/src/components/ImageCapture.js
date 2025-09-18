@@ -1,0 +1,205 @@
+import React, { useState, useRef, useCallback } from 'react';
+import Webcam from 'react-webcam';
+
+const ImageCapture = ({ onImageCapture, requestId }) => {
+  const webcamRef = useRef(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  const videoConstraints = {
+    width: 1280,
+    height: 720,
+    facingMode: "user"
+  };
+
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setCapturedImage(imageSrc);
+    setIsCapturing(false);
+  }, [webcamRef]);
+
+  const retake = () => {
+    setCapturedImage(null);
+    setIsCapturing(true);
+  };
+
+  const dataURLtoFile = (dataurl, filename) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const handleImageCapture = (imageData) => {
+    // Store the captured image data for later upload
+    if (onImageCapture) {
+      onImageCapture(imageData);
+    }
+  };
+
+  const uploadImage = async () => {
+    console.log('=== UPLOAD IMAGE CALLED ===');
+    console.log('capturedImage exists:', !!capturedImage);
+    console.log('requestId:', requestId);
+    
+    if (!capturedImage) return;
+
+    setIsUploading(true);
+    setUploadStatus('Uploading...');
+
+    try {
+      // If we have a requestId, upload immediately
+      if (requestId) {
+        console.log('Uploading with requestId:', requestId);
+        const file = dataURLtoFile(capturedImage, `capture-${Date.now()}.jpg`);
+        console.log('File created:', file);
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('requestId', requestId);
+
+        // Try to get token from different sources (admin, hr, or regular token)
+        const token = localStorage.getItem('adminToken') || 
+                     localStorage.getItem('hrToken') || 
+                     localStorage.getItem('token');
+        
+        console.log('Token found:', !!token);
+        console.log('Making upload request to:', 'http://localhost:5000/api/images/upload');
+        
+        const response = await fetch('http://localhost:5000/api/images/upload', {
+          method: 'POST',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {},
+          body: formData
+        });
+
+        console.log('Upload response status:', response.status);
+        const data = await response.json();
+        console.log('Upload response data:', data);
+
+        if (response.ok) {
+          setUploadStatus('Upload successful!');
+          if (onImageCapture) {
+            onImageCapture(data.imageUrl);
+          }
+          // Reset after successful upload
+          setTimeout(() => {
+            setCapturedImage(null);
+            setUploadStatus('');
+          }, 2000);
+        } else {
+          setUploadStatus(`Upload failed: ${data.message}`);
+        }
+      } else {
+        console.log('No requestId - storing for later upload');
+        // If no requestId, just store the image data for later upload
+        handleImageCapture(capturedImage);
+        setUploadStatus('Image captured! Will be uploaded with form submission.');
+        setTimeout(() => {
+          setCapturedImage(null);
+          setUploadStatus('');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4 text-gray-800">Live Image Capture</h3>
+      
+      <div className="space-y-4">
+        {!isCapturing && !capturedImage && (
+          <div className="text-center">
+            <button
+              onClick={() => setIsCapturing(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Start Camera
+            </button>
+          </div>
+        )}
+
+        {isCapturing && !capturedImage && (
+          <div className="space-y-4">
+            <div className="relative">
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                videoConstraints={videoConstraints}
+                className="w-full max-w-md mx-auto rounded-lg"
+              />
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={capture}
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Capture Photo
+              </button>
+              <button
+                onClick={() => setIsCapturing(false)}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {capturedImage && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <img
+                src={capturedImage}
+                alt="Captured"
+                className="w-full max-w-md mx-auto rounded-lg border-2 border-gray-300"
+              />
+            </div>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={uploadImage}
+                disabled={isUploading}
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                {isUploading ? 'Uploading...' : 'Upload Image'}
+              </button>
+              <button
+                onClick={retake}
+                disabled={isUploading}
+                className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Retake
+              </button>
+            </div>
+            {uploadStatus && (
+              <div className={`text-center p-2 rounded ${
+                uploadStatus.includes('successful') 
+                  ? 'bg-green-100 text-green-800' 
+                  : uploadStatus.includes('failed') 
+                  ? 'bg-red-100 text-red-800'
+                  : 'bg-blue-100 text-blue-800'
+              }`}>
+                {uploadStatus}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ImageCapture;

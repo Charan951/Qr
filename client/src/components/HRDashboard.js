@@ -41,6 +41,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import ImageViewer from './ImageViewer';
 
 const HRDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -686,6 +687,12 @@ const HRDashboard = () => {
                   <Typography>{selectedRequest.reviewedBy}</Typography>
                 </Grid>
               )}
+              
+              {/* Images Section */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ mb: 2 }}>Images:</Typography>
+                <ImageViewer requestId={selectedRequest._id} />
+              </Grid>
             </Grid>
           )}
         </DialogContent>

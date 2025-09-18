@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import HRManagement from './HRManagement';
+import ImageViewer from './ImageViewer';
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -681,6 +682,12 @@ const AdminDashboard = () => {
                   <Typography>{selectedRequest.rejectionReason}</Typography>
                 </Grid>
               )}
+              
+              {/* Images Section */}
+              <Grid size={12}>
+                <Typography variant="subtitle2" sx={{ mb: 2 }}>Images:</Typography>
+                <ImageViewer requestId={selectedRequest._id} />
+              </Grid>
             </Grid>
           )}
         </DialogContent>

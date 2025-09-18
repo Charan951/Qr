@@ -13,8 +13,21 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Skip body parsing for image upload routes
+app.use((req, res, next) => {
+  if (req.path === '/api/images/upload') {
+    return next();
+  }
+  express.json()(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.path === '/api/images/upload') {
+    return next();
+  }
+  express.urlencoded({ extended: true })(req, res, next);
+});
 
 // Connect to MongoDB - Use in-memory database for testing if MongoDB is not available
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/access-request-db';
@@ -36,6 +49,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/hr', require('./routes/hr'));
 app.use('/api', require('./routes/upload'));
+app.use('/api/images', require('./routes/images'));
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production') {
