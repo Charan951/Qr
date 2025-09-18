@@ -35,7 +35,6 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/hr', require('./routes/hr'));
-app.use('/api/qr', require('./routes/qr'));
 app.use('/api', require('./routes/upload'));
 
 // Serve static files from React app in production
