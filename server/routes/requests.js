@@ -67,6 +67,13 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (purposeOfAccess === 'interview' && (!req.body.interviewPosition || !req.body.interviewerName || !req.body.interviewerPhone || !req.body.interviewType)) {
+      return res.status(400).json({ 
+        message: 'Position, interviewer name, interviewer phone, and interview type are required for interview',
+        required: ['interviewPosition', 'interviewerName', 'interviewerPhone', 'interviewType']
+      });
+    }
+
     // Create new access request with conditional fields
     const requestData = {
       fullName,
@@ -105,6 +112,13 @@ router.post('/', async (req, res) => {
     if (purposeOfAccess === 'client') {
       requestData.companyName = companyName;
       requestData.clientMobileNumber = clientMobileNumber;
+    }
+
+    if (purposeOfAccess === 'interview') {
+      requestData.interviewPosition = req.body.interviewPosition;
+      requestData.interviewerName = req.body.interviewerName;
+      requestData.interviewerPhone = req.body.interviewerPhone;
+      requestData.interviewType = req.body.interviewType;
     }
 
     const accessRequest = new AccessRequest(requestData);

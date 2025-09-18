@@ -72,6 +72,24 @@ const accessRequestSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Interview Details
+  interviewPosition: {
+    type: String,
+    trim: true
+  },
+  interviewerName: {
+    type: String,
+    trim: true
+  },
+  interviewerPhone: {
+    type: String,
+    trim: true
+  },
+  interviewType: {
+    type: String,
+    trim: true
+  },
+  
   // Submission Details
   submittedDate: {
     type: Date,

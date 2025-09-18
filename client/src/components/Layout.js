@@ -43,9 +43,16 @@ const Layout = ({ children }) => {
       <AppBar position="static" elevation={2}>
         <Toolbar>
           
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Speshway Solutions Private Limited
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <img 
+                src="/logo.png"
+                alt="Speshway Solutions Logo" 
+                style={{ width: '32px', height: '32px', marginRight: '12px' }}
+              />
+            <Typography variant="h6" component="div">
+              Speshway Solutions Private Limited
+            </Typography>
+          </Box>
           
           {/* Desktop Navigation */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>

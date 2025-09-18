@@ -16,6 +16,11 @@ const AccessRequestForm = () => {
     visitorDescription: "",
     companyName: "",
     clientMobileNumber: "",
+    // Interview fields
+    interviewPosition: "",
+    interviewerName: "",
+    interviewerPhone: "",
+    interviewType: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -64,6 +69,13 @@ const AccessRequestForm = () => {
         submitData.clientMobileNumber = formData.clientMobileNumber;
       }
 
+      if (formData.purposeOfAccess === 'interview') {
+        submitData.interviewPosition = formData.interviewPosition;
+        submitData.interviewerName = formData.interviewerName;
+        submitData.interviewerPhone = formData.interviewerPhone;
+        submitData.interviewType = formData.interviewType;
+      }
+
       const submitResponse = await fetch('http://localhost:5000/api/requests', {
         method: 'POST',
         headers: {
@@ -95,6 +107,11 @@ const AccessRequestForm = () => {
             visitorDescription: "",
             companyName: "",
             clientMobileNumber: "",
+            // Interview fields
+            interviewPosition: "",
+            interviewerName: "",
+            interviewerPhone: "",
+            interviewType: "",
           });
         }, 3000);
       } else {
@@ -231,6 +248,64 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'onboarding'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Interview Fields - Only show when purpose is 'interview' */}
+          {formData.purposeOfAccess === 'interview' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Position Applied For *</label>
+                <input
+                  type="text"
+                  name="interviewPosition"
+                  value={formData.interviewPosition}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'interview'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  placeholder="Position Title"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Interview Type *</label>
+                <select
+                  name="interviewType"
+                  value={formData.interviewType}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'interview'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                >
+                  <option value="" className="bg-gray-800 text-white">Select interview type</option>
+                  <option value="technical" className="bg-gray-800 text-white">Technical Interview</option>
+                  <option value="hr" className="bg-gray-800 text-white">HR Interview</option>
+                  <option value="managerial" className="bg-gray-800 text-white">Managerial Interview</option>
+                  <option value="final" className="bg-gray-800 text-white">Final Interview</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Interviewer Name *</label>
+                <input
+                  type="text"
+                  name="interviewerName"
+                  value={formData.interviewerName}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'interview'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  placeholder="Interviewer Name"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-white/80 mb-1">Interviewer Phone *</label>
+                <input
+                  type="tel"
+                  name="interviewerPhone"
+                  value={formData.interviewerPhone}
+                  onChange={handleChange}
+                  required={formData.purposeOfAccess === 'interview'}
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
                   placeholder="+91 98765 43210"
                 />
               </div>

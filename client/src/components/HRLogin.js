@@ -84,9 +84,19 @@ const HRLogin = () => {
       <Card sx={{ maxWidth: 400, width: '100%' }}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <People sx={{ fontSize: 48, color: 'secondary.main', mb: 2 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <img 
+                  src="/logo.png"
+                  alt="Speshway Solutions Logo" 
+                  style={{ width: '32px', height: '32px', marginRight: '8px' }}
+                />
+              <People sx={{ fontSize: 48, color: 'secondary.main' }} />
+            </Box>
             <Typography variant="h4" component="h1" color="secondary" textAlign="center">
               HR Login
+            </Typography>
+            <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
+              Speshway Solutions Private Limited
             </Typography>
             <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
               Access the HR dashboard
