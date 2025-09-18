@@ -1,7 +1,14 @@
 // API Configuration
 const API_CONFIG = {
-  // Local Development Base URL
-  BASE_URL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000',
+  // Dynamic Base URL - works for both development and production
+  BASE_URL: (() => {
+    // In production, use the environment variable or fallback to production URL
+    if (process.env.NODE_ENV === 'production') {
+      return process.env.REACT_APP_API_BASE_URL || 'https://qr-nk38.onrender.com';
+    }
+    // In development, use localhost
+    return process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+  })(),
   
   // API endpoints
   ENDPOINTS: {
