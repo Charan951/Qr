@@ -128,7 +128,113 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
   }
 };
 
+// Send new access request notification to HR and Admin with approve/reject options
+const sendNewAccessRequestNotification = async (recipientEmail, recipientName, recipientRole, requestData) => {
+  try {
+    const transporter = createTransporter();
+    
+    const subject = `New Access Request - Action Required`;
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    
+    // Generate secure tokens for approve/reject actions
+    const approveToken = Buffer.from(JSON.stringify({
+      requestId: requestData._id,
+      action: 'approve',
+      role: recipientRole,
+      email: recipientEmail,
+      timestamp: Date.now()
+    })).toString('base64');
+    
+    const rejectToken = Buffer.from(JSON.stringify({
+      requestId: requestData._id,
+      action: 'reject',
+      role: recipientRole,
+      email: recipientEmail,
+      timestamp: Date.now()
+    })).toString('base64');
+    
+    const approveUrl = `${baseUrl}/api/requests/email-action?token=${approveToken}`;
+    const rejectUrl = `${baseUrl}/api/requests/email-action?token=${rejectToken}`;
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #333; text-align: center;">New Access Request - Action Required</h2>
+          
+          <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #333;">Dear ${recipientName},</p>
+            
+            <p style="font-size: 16px; color: #333;">
+              A new access request has been submitted and requires your attention.
+            </p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h4 style="margin: 0 0 10px 0; color: #333;">Request Details:</h4>
+              <p style="margin: 5px 0; color: #666;"><strong>Name:</strong> ${requestData.fullName}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Email:</strong> ${requestData.email}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Phone:</strong> ${requestData.phoneNumber || 'Not provided'}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Purpose:</strong> ${requestData.purposeOfAccess}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Whom to Meet:</strong> ${requestData.whomToMeet}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Submitted:</strong> ${new Date(requestData.submittedDate).toLocaleString()}</p>
+              ${requestData.referenceName ? `<p style="margin: 5px 0; color: #666;"><strong>Reference:</strong> ${requestData.referenceName} (${requestData.referencePhoneNumber})</p>` : ''}
+              ${requestData.trainingName ? `<p style="margin: 5px 0; color: #666;"><strong>Training:</strong> ${requestData.trainingName}</p>` : ''}
+              ${requestData.companyName ? `<p style="margin: 5px 0; color: #666;"><strong>Company:</strong> ${requestData.companyName}</p>` : ''}
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+                <strong>Take Action:</strong>
+              </p>
+              
+              <div style="display: inline-block; margin: 0 10px;">
+                <a href="${approveUrl}" 
+                   style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                  ✓ APPROVE
+                </a>
+              </div>
+              
+              <div style="display: inline-block; margin: 0 10px;">
+                <a href="${rejectUrl}" 
+                   style="background-color: #f44336; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                  ✗ REJECT
+                </a>
+              </div>
+            </div>
+            
+            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; color: #1976d2; font-size: 14px;">
+                <strong>Note:</strong> You can also log into the dashboard to review and take action on this request.
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <p style="font-size: 12px; color: #999;">
+              This is an automated notification from the Access Request Management System.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipientEmail,
+      subject: subject,
+      html: htmlContent,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`New request notification sent to ${recipientRole}:`, result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error(`Error sending new request notification to ${recipientRole}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendAccessRequestNotification,
   sendApproverNotification,
+  sendNewAccessRequestNotification,
 };
