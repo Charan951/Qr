@@ -2,15 +2,15 @@
   "version": 2,
   "name": "qr-access-system",
   "buildCommand": "npm run build",
-  "outputDirectory": "build",
-  "installCommand": "npm install",
+  "outputDirectory": "dist",
+  "installCommand": "yarn install",
   "framework": null,
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "build",
+        "distDir": "dist",
         "buildCommand": "npm run build"
       }
     }
