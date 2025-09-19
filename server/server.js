@@ -13,8 +13,8 @@ app.use(cors({
     'http://localhost:3001',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
-    'https://your-vercel-app.vercel.app', // Replace with your actual Vercel domain
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL
   ].filter(Boolean),
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],

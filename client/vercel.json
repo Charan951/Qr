@@ -23,6 +23,8 @@
     }
   ],
   "env": {
-    "REACT_APP_API_BASE_URL": "https://qr-nk38.onrender.com"
+    "REACT_APP_API_BASE_URL": "https://your-render-app.onrender.com",
+    "GENERATE_SOURCEMAP": "false",
+    "CI": "false"
   }
 }
