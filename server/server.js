@@ -60,6 +60,11 @@ app.use('/api/images', require('./routes/images'));
 
 // Backend API only - frontend is deployed separately on Vercel
 
+// Catch-all handler for undefined API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running', status: 'OK' });
