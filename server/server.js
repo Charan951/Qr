@@ -10,7 +10,9 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:3000', 
+    'http://localhost:3001',
     'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
     'https://your-vercel-app.vercel.app', // Replace with your actual Vercel domain
     process.env.FRONTEND_URL
   ].filter(Boolean),

@@ -328,7 +328,8 @@ router.patch('/requests/:id', async (req, res) => {
         request.fullName,
         status,
         'HR',
-        req.user.username
+        req.user.username,
+        request
       );
 
       // Send confirmation email to the HR who took the action
@@ -342,7 +343,8 @@ router.patch('/requests/:id', async (req, res) => {
           {
             email: request.email,
             purpose: request.purposeOfAccess,
-            whomToMeet: request.whomToMeet
+            whomToMeet: request.whomToMeet,
+            images: request.images
           }
         );
       }
@@ -359,7 +361,8 @@ router.patch('/requests/:id', async (req, res) => {
             {
               email: request.email,
               purpose: request.purposeOfAccess,
-              whomToMeet: request.whomToMeet
+              whomToMeet: request.whomToMeet,
+              images: request.images
             }
           );
         }

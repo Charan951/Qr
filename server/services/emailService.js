@@ -15,13 +15,41 @@ const createTransporter = () => {
 };
 
 // Send access request approval/rejection notification
-const sendAccessRequestNotification = async (userEmail, userName, status, approverRole, approverName) => {
+const sendAccessRequestNotification = async (userEmail, userName, status, approverRole, approverName, requestData = null) => {
   try {
     const transporter = createTransporter();
     
     const subject = `Access Request ${status === 'approved' ? 'Approved' : 'Rejected'}`;
     const statusText = status === 'approved' ? 'approved' : 'rejected';
     const statusColor = status === 'approved' ? '#4CAF50' : '#f44336';
+    
+    // Add uploaded images section if images exist and requestData is provided
+    let imagesHtml = '';
+    if (requestData && requestData.images && requestData.images.length > 0) {
+      console.log('Email Service - Processing images for approval notification');
+      imagesHtml = `
+        <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+          <h4 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">📷</span> Your Uploaded Images (${requestData.images.length})
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">`;
+      
+      requestData.images.forEach((imageUrl, index) => {
+        const fullImageUrl = imageUrl;
+        imagesHtml += `
+          <div style="text-align: center; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <img src="${fullImageUrl}" alt="Request Image ${index + 1}" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: cover; display: block; margin: 0 auto;" />
+            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Image ${index + 1}</p>
+          </div>`;
+      });
+      
+      imagesHtml += `
+          </div>
+          <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; text-align: center;">
+            These were the images you submitted with your request
+          </p>
+        </div>`;
+    }
     
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -39,6 +67,8 @@ const sendAccessRequestNotification = async (userEmail, userName, status, approv
             <div style="background-color: ${statusColor}; color: white; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;">
               <h3 style="margin: 0;">Status: ${status.toUpperCase()}</h3>
             </div>
+            
+            ${imagesHtml}
             
             <p style="font-size: 14px; color: #666; margin-top: 20px;">
               If you have any questions, please contact the ${approverRole.toLowerCase()} department.
@@ -79,6 +109,34 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
     const statusText = status === 'approved' ? 'approved' : 'rejected';
     const statusColor = status === 'approved' ? '#4CAF50' : '#f44336';
     
+    // Add uploaded images section if images exist in requestDetails
+    let imagesHtml = '';
+    if (requestDetails && requestDetails.images && requestDetails.images.length > 0) {
+      console.log('Email Service - Processing images for approver notification');
+      imagesHtml = `
+        <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+          <h4 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">📷</span> Request Images (${requestDetails.images.length})
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">`;
+      
+      requestDetails.images.forEach((imageUrl, index) => {
+        const fullImageUrl = imageUrl;
+        imagesHtml += `
+          <div style="text-align: center; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <img src="${fullImageUrl}" alt="Request Image ${index + 1}" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: cover; display: block; margin: 0 auto;" />
+            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Image ${index + 1}</p>
+          </div>`;
+      });
+      
+      imagesHtml += `
+          </div>
+          <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; text-align: center;">
+            Images submitted with this request
+          </p>
+        </div>`;
+    }
+    
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px;">
@@ -98,6 +156,8 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
               <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> <span style="color: ${statusColor};">${status.toUpperCase()} by ${approverName}</span></p>
               <p style="margin: 5px 0; color: #666;"><strong>Action Date:</strong> ${new Date().toLocaleString()}</p>
             </div>
+            
+            ${imagesHtml}
             
             <p style="font-size: 14px; color: #666;">
               The user has been notified about this decision via email.
@@ -157,61 +217,176 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
     const approveUrl = `${baseUrl}/api/requests/email-action?token=${approveToken}`;
     const rejectUrl = `${baseUrl}/api/requests/email-action?token=${rejectToken}`;
     
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #333; text-align: center;">New Access Request - Action Required</h2>
+    // Build comprehensive request details section
+    let requestDetailsHtml = `
+      <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h4 style="margin: 0 0 15px 0; color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">Request Details:</h4>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div>
+            <p style="margin: 5px 0; color: #666;"><strong>Name:</strong> ${requestData.fullName}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Email:</strong> <a href="mailto:${requestData.email}" style="color: #1976d2;">${requestData.email}</a></p>
+            <p style="margin: 5px 0; color: #666;"><strong>Phone:</strong> ${requestData.phoneNumber || 'Not provided'}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Purpose:</strong> ${requestData.purposeOfAccess}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Whom to Meet:</strong> ${requestData.whomToMeet}</p>
+          </div>
           
-          <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="font-size: 16px; color: #333;">Dear ${recipientName},</p>
+          <div>
+            <p style="margin: 5px 0; color: #666;"><strong>Submitted Date:</strong> ${new Date(requestData.submittedDate).toLocaleDateString()}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Submitted Time:</strong> ${requestData.submittedTime || new Date(requestData.submittedDate).toLocaleTimeString()}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> <span style="background-color: #ff9800; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">PENDING</span></p>
+          </div>
+        </div>`;
+
+    // Add reference details if available
+    if (requestData.referenceName) {
+      requestDetailsHtml += `
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+          <h5 style="margin: 0 0 10px 0; color: #555;">Reference Information:</h5>
+          <p style="margin: 5px 0; color: #666;"><strong>Reference Name:</strong> ${requestData.referenceName}</p>
+          ${requestData.referencePhoneNumber ? `<p style="margin: 5px 0; color: #666;"><strong>Reference Phone:</strong> ${requestData.referencePhoneNumber}</p>` : ''}
+        </div>`;
+    }
+
+    // Add training details if available
+    if (requestData.trainingName) {
+      requestDetailsHtml += `
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+          <h5 style="margin: 0 0 10px 0; color: #555;">Training Information:</h5>
+          <p style="margin: 5px 0; color: #666;"><strong>Training Name:</strong> ${requestData.trainingName}</p>
+          ${requestData.trainerNumber ? `<p style="margin: 5px 0; color: #666;"><strong>Trainer Number:</strong> ${requestData.trainerNumber}</p>` : ''}
+          ${requestData.departmentName ? `<p style="margin: 5px 0; color: #666;"><strong>Department:</strong> ${requestData.departmentName}</p>` : ''}
+        </div>`;
+    }
+
+    // Add company details if available
+    if (requestData.companyName) {
+      requestDetailsHtml += `
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+          <h5 style="margin: 0 0 10px 0; color: #555;">Company Information:</h5>
+          <p style="margin: 5px 0; color: #666;"><strong>Company Name:</strong> ${requestData.companyName}</p>
+          ${requestData.clientMobileNumber ? `<p style="margin: 5px 0; color: #666;"><strong>Client Mobile:</strong> ${requestData.clientMobileNumber}</p>` : ''}
+        </div>`;
+    }
+
+    // Add interview details if available
+    if (requestData.interviewPosition) {
+      requestDetailsHtml += `
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+          <h5 style="margin: 0 0 10px 0; color: #555;">Interview Information:</h5>
+          <p style="margin: 5px 0; color: #666;"><strong>Position:</strong> ${requestData.interviewPosition}</p>
+          ${requestData.interviewerName ? `<p style="margin: 5px 0; color: #666;"><strong>Interviewer:</strong> ${requestData.interviewerName}</p>` : ''}
+          ${requestData.interviewerPhone ? `<p style="margin: 5px 0; color: #666;"><strong>Interviewer Phone:</strong> ${requestData.interviewerPhone}</p>` : ''}
+          ${requestData.interviewType ? `<p style="margin: 5px 0; color: #666;"><strong>Interview Type:</strong> ${requestData.interviewType}</p>` : ''}
+        </div>`;
+    }
+
+    // Add visitor description if available
+    if (requestData.visitorDescription) {
+      requestDetailsHtml += `
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 15px; margin-top: 15px;">
+          <h5 style="margin: 0 0 10px 0; color: #555;">Visitor Description:</h5>
+          <p style="margin: 5px 0; color: #666;">${requestData.visitorDescription}</p>
+        </div>`;
+    }
+
+    requestDetailsHtml += `</div>`;
+
+    // Add uploaded images section if images exist
+    let imagesHtml = '';
+    console.log('Email Service - Request Data Images:', requestData.images);
+    console.log('Email Service - Images Array Length:', requestData.images ? requestData.images.length : 0);
+    
+    if (requestData.images && requestData.images.length > 0) {
+      console.log('Email Service - Processing images for email display');
+      imagesHtml = `
+        <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+          <h4 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">📷</span> Uploaded Images (${requestData.images.length})
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">`;
+      
+      requestData.images.forEach((imageUrl, index) => {
+        console.log(`Email Service - Processing image ${index + 1}:`, imageUrl);
+        // Images are stored as full S3 URLs, so use them directly
+        const fullImageUrl = imageUrl;
+        imagesHtml += `
+          <div style="text-align: center; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <img src="${fullImageUrl}" alt="Request Image ${index + 1}" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: cover; display: block; margin: 0 auto;" />
+            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Image ${index + 1}</p>
+            <p style="margin: 4px 0 0 0; font-size: 10px; color: #999; word-break: break-all;">${fullImageUrl}</p>
+          </div>`;
+      });
+      
+      imagesHtml += `
+          </div>
+          <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; text-align: center;">
+            Click on images to view in full size
+          </p>
+        </div>`;
+    } else {
+      console.log('Email Service - No images found in request data');
+      // Add a debug section to show that no images were found
+      imagesHtml = `
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="margin: 0; color: #856404; font-size: 14px;">
+            <strong>📷 Images:</strong> No images were uploaded with this request.
+          </p>
+        </div>`;
+    }
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="background-color: #f5f5f5; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="color: #333; margin: 0; font-size: 24px; font-weight: 600;">New Access Request - Action Required</h2>
+            <div style="width: 60px; height: 3px; background-color: #2196f3; margin: 10px auto;"></div>
+          </div>
+          
+          <div style="background-color: white; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Dear ${recipientName},</p>
             
-            <p style="font-size: 16px; color: #333;">
+            <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 25px;">
               A new access request has been submitted and requires your attention.
             </p>
             
-            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <h4 style="margin: 0 0 10px 0; color: #333;">Request Details:</h4>
-              <p style="margin: 5px 0; color: #666;"><strong>Name:</strong> ${requestData.fullName}</p>
-              <p style="margin: 5px 0; color: #666;"><strong>Email:</strong> ${requestData.email}</p>
-              <p style="margin: 5px 0; color: #666;"><strong>Phone:</strong> ${requestData.phoneNumber || 'Not provided'}</p>
-              <p style="margin: 5px 0; color: #666;"><strong>Purpose:</strong> ${requestData.purposeOfAccess}</p>
-              <p style="margin: 5px 0; color: #666;"><strong>Whom to Meet:</strong> ${requestData.whomToMeet}</p>
-              <p style="margin: 5px 0; color: #666;"><strong>Submitted:</strong> ${new Date(requestData.submittedDate).toLocaleString()}</p>
-              ${requestData.referenceName ? `<p style="margin: 5px 0; color: #666;"><strong>Reference:</strong> ${requestData.referenceName} (${requestData.referencePhoneNumber})</p>` : ''}
-              ${requestData.trainingName ? `<p style="margin: 5px 0; color: #666;"><strong>Training:</strong> ${requestData.trainingName}</p>` : ''}
-              ${requestData.companyName ? `<p style="margin: 5px 0; color: #666;"><strong>Company:</strong> ${requestData.companyName}</p>` : ''}
-            </div>
+            ${requestDetailsHtml}
             
-            <div style="text-align: center; margin: 30px 0;">
-              <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-                <strong>Take Action:</strong>
+            ${imagesHtml}
+            
+            <div style="text-align: center; margin: 40px 0; padding: 25px; background-color: #fafafa; border-radius: 8px;">
+              <p style="font-size: 18px; color: #333; margin-bottom: 25px; font-weight: 600;">
+                Take Action:
               </p>
               
-              <div style="display: inline-block; margin: 0 10px;">
+              <div style="display: inline-block; margin: 0 15px;">
                 <a href="${approveUrl}" 
-                   style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                   style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 2px 4px rgba(76,175,80,0.3); transition: all 0.3s ease;">
                   ✓ APPROVE
                 </a>
               </div>
               
-              <div style="display: inline-block; margin: 0 10px;">
+              <div style="display: inline-block; margin: 0 15px;">
                 <a href="${rejectUrl}" 
-                   style="background-color: #f44336; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                   style="background-color: #f44336; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 2px 4px rgba(244,67,54,0.3); transition: all 0.3s ease;">
                   ✗ REJECT
                 </a>
               </div>
             </div>
             
-            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 0; color: #1976d2; font-size: 14px;">
-                <strong>Note:</strong> You can also log into the dashboard to review and take action on this request.
+            <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2196f3;">
+              <p style="margin: 0; color: #1976d2; font-size: 14px; line-height: 1.5;">
+                <strong>💡 Note:</strong> You can also log into the dashboard to review and take action on this request with additional options and detailed view.
               </p>
             </div>
           </div>
           
-          <div style="text-align: center; margin-top: 20px;">
-            <p style="font-size: 12px; color: #999;">
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="font-size: 12px; color: #999; margin: 0;">
               This is an automated notification from the Access Request Management System.
+            </p>
+            <p style="font-size: 11px; color: #ccc; margin: 5px 0 0 0;">
+              Please do not reply to this email. For support, contact your system administrator.
             </p>
           </div>
         </div>

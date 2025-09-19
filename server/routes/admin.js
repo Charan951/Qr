@@ -201,23 +201,25 @@ router.patch('/requests/:id', async (req, res) => {
         request.fullName,
         status,
         'Admin',
-        req.user.username
+        req.user.username,
+        request
       );
 
       // Send confirmation email to the admin who took the action
       const adminUser = await User.findOne({ username: req.user.username });
       if (adminUser && adminUser.email) {
         await sendApproverNotification(
-          adminUser.email,
-          req.user.username,
-          request.fullName,
-          status,
-          {
-            email: request.email,
-            purpose: request.purposeOfAccess,
-            whomToMeet: request.whomToMeet
-          }
-        );
+            adminUser.email,
+            req.user.username,
+            request.fullName,
+            status,
+            {
+              email: request.email,
+              purpose: request.purposeOfAccess,
+              whomToMeet: request.whomToMeet,
+              images: request.images
+            }
+          );
       }
 
       // Send notification emails to all HR users
@@ -232,7 +234,8 @@ router.patch('/requests/:id', async (req, res) => {
             {
               email: request.email,
               purpose: request.purposeOfAccess,
-              whomToMeet: request.whomToMeet
+              whomToMeet: request.whomToMeet,
+              images: request.images
             }
           );
         }

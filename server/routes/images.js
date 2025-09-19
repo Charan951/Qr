@@ -71,6 +71,61 @@ router.post('/upload', (req, res, next) => {
         $push: { images: imageUrl }
       }, { new: true });
       console.log('Request updated:', updatedRequest ? 'Success' : 'Failed');
+      
+      // Only send email notifications if this is the first image being uploaded
+      // This prevents duplicate emails when multiple images are uploaded
+      if (updatedRequest && updatedRequest.images.length === 1) {
+        try {
+          const { sendNewAccessRequestNotification } = require('../services/emailService');
+          const User = require('../models/User');
+
+          // Get all active HR users
+          const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+          
+          // Get all active Admin users  
+          const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+
+          // Send notifications to all HR users
+          for (const hrUser of hrUsers) {
+            if (hrUser.email) {
+              try {
+                await sendNewAccessRequestNotification(
+                  hrUser.email,
+                  hrUser.username,
+                  'HR',
+                  updatedRequest
+                );
+                console.log(`Updated request notification sent to HR: ${hrUser.email}`);
+              } catch (emailError) {
+                console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+              }
+            }
+          }
+
+          // Send notifications to all Admin users
+          for (const adminUser of adminUsers) {
+            if (adminUser.email) {
+              try {
+                await sendNewAccessRequestNotification(
+                  adminUser.email,
+                  adminUser.username,
+                  'Admin',
+                  updatedRequest
+                );
+                console.log(`Updated request notification sent to Admin: ${adminUser.email}`);
+              } catch (emailError) {
+                console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+              }
+            }
+          }
+
+        } catch (error) {
+          console.error('Error sending email notifications after first image upload:', error);
+          // Don't fail the image upload if email fails
+        }
+      } else if (updatedRequest && updatedRequest.images.length > 1) {
+        console.log(`Skipping email notification - this is image ${updatedRequest.images.length} of multiple uploads`);
+      }
     }
 
     console.log('Image upload successful, returning response');

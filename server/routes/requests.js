@@ -99,7 +99,8 @@ router.get('/email-action', async (req, res) => {
         accessRequest.fullName,
         action === 'approve' ? 'approved' : 'rejected',
         role.toUpperCase(),
-        `Email Action (${email})`
+        `Email Action (${email})`,
+        accessRequest
       );
 
       // Send notification emails to all HR users
@@ -114,7 +115,8 @@ router.get('/email-action', async (req, res) => {
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
-              whomToMeet: accessRequest.whomToMeet
+              whomToMeet: accessRequest.whomToMeet,
+              images: accessRequest.images
             }
           );
         }
@@ -132,7 +134,8 @@ router.get('/email-action', async (req, res) => {
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
-              whomToMeet: accessRequest.whomToMeet
+              whomToMeet: accessRequest.whomToMeet,
+              images: accessRequest.images
             }
           );
         }
@@ -169,27 +172,306 @@ router.get('/email-action', async (req, res) => {
     // Send success response
     const actionText = action === 'approve' ? 'Approved' : 'Rejected';
     const actionColor = action === 'approve' ? '#4CAF50' : '#f44336';
+    const actionIcon = action === 'approve' ? '✓' : '✗';
+    const actionBgColor = action === 'approve' ? '#e8f5e8' : '#ffeaea';
     
     res.send(`
-      <html>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-          <div style="max-width: 600px; margin: 0 auto;">
-            <h2 style="color: ${actionColor};">Request ${actionText}</h2>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px; margin: 20px 0;">
-              <p style="font-size: 18px;">The access request has been successfully ${action}d.</p>
-              <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Request ID:</strong> ${requestId}</p>
-                <p><strong>Applicant:</strong> ${accessRequest.fullName}</p>
-                <p><strong>Email:</strong> ${accessRequest.email}</p>
-                <p><strong>Action taken by:</strong> ${role.toUpperCase()} (${email})</p>
-                <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Request ${actionText} - Access Management System</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+          
+          .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideIn 0.6s ease-out;
+          }
+          
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateY(30px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          .header {
+            background: ${actionBgColor};
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 3px solid ${actionColor};
+          }
+          
+          .icon {
+            width: 80px;
+            height: 80px;
+            background: ${actionColor};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+            color: white;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+          }
+          
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+          }
+          
+          .title {
+            color: ${actionColor};
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+          }
+          
+          .subtitle {
+            color: #666;
+            font-size: 18px;
+            font-weight: 400;
+          }
+          
+          .content {
+            padding: 40px 30px;
+          }
+          
+          .success-message {
+            background: #f8f9fa;
+            border-left: 4px solid ${actionColor};
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+          }
+          
+          .success-message p {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 0;
+          }
+          
+          .details-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+          }
+          
+          .details-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+          }
+          
+          .details-title::before {
+            content: "📋";
+            margin-right: 10px;
+            font-size: 20px;
+          }
+          
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          
+          .detail-label {
+            font-weight: 600;
+            color: #555;
+            flex: 1;
+          }
+          
+          .detail-value {
+            color: #333;
+            flex: 2;
+            text-align: right;
+          }
+          
+          .notification-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+          }
+          
+          .notification-info::before {
+            content: "📧";
+            margin-right: 10px;
+            font-size: 18px;
+          }
+          
+          .notification-info p {
+            margin: 0;
+            color: #1976d2;
+            font-size: 14px;
+          }
+          
+          .auto-close {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f1f3f4;
+            border-radius: 8px;
+          }
+          
+          .auto-close p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+          }
+          
+          .countdown {
+            font-size: 18px;
+            font-weight: 600;
+            color: ${actionColor};
+          }
+          
+          .close-btn {
+            background: ${actionColor};
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+          }
+          
+          .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="icon">${actionIcon}</div>
+            <h1 class="title">Request ${actionText}</h1>
+            <p class="subtitle">Action completed successfully</p>
+          </div>
+          
+          <div class="content">
+            <div class="success-message">
+              <p>The access request has been successfully ${action}d and all relevant parties have been notified.</p>
+            </div>
+            
+            <div class="details-card">
+              <div class="details-title">Request Details</div>
+              <div class="detail-row">
+                <span class="detail-label">Request ID:</span>
+                <span class="detail-value">${requestId}</span>
               </div>
-              <p style="color: #666; font-size: 14px;">
-                The applicant will be notified of this decision via email.
-              </p>
+              <div class="detail-row">
+                <span class="detail-label">Applicant:</span>
+                <span class="detail-value">${accessRequest.fullName}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${accessRequest.email}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Action taken by:</span>
+                <span class="detail-value">${role.toUpperCase()} (${email})</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date & Time:</span>
+                <span class="detail-value">${new Date().toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div class="notification-info">
+              <p>Email notifications have been sent to the applicant and all relevant administrators.</p>
+            </div>
+            
+            <div class="auto-close">
+              <p>This window will automatically close in:</p>
+              <div class="countdown" id="countdown">5</div>
+              <button class="close-btn" onclick="closeWindow()">Close Now</button>
             </div>
           </div>
-        </body>
+        </div>
+        
+        <script>
+          let timeLeft = 5;
+          const countdownElement = document.getElementById('countdown');
+          
+          function updateCountdown() {
+            countdownElement.textContent = timeLeft;
+            if (timeLeft <= 0) {
+              closeWindow();
+            } else {
+              timeLeft--;
+              setTimeout(updateCountdown, 1000);
+            }
+          }
+          
+          function closeWindow() {
+            // Try to close the window/tab
+            if (window.opener) {
+              window.close();
+            } else {
+              // If we can't close, show a message
+              document.querySelector('.auto-close').innerHTML = 
+                '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">You can safely close this tab.</p>';
+            }
+          }
+          
+          // Start countdown when page loads
+          setTimeout(updateCountdown, 1000);
+          
+          // Add keyboard shortcut to close (Escape key)
+          document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+              closeWindow();
+            }
+          });
+        </script>
+      </body>
       </html>
     `);
 
@@ -328,7 +610,7 @@ router.post('/', async (req, res) => {
     const accessRequest = new AccessRequest(requestData);
     await accessRequest.save();
 
-    // Send email notifications to HR and Admin users
+    // Send email notifications to HR and Admin users immediately after request creation
     try {
       const { sendNewAccessRequestNotification } = require('../services/emailService');
       const User = require('../models/User');
@@ -374,10 +656,11 @@ router.post('/', async (req, res) => {
       }
 
     } catch (error) {
-      console.error('Error sending email notifications:', error);
-      // Don't fail the request submission if email fails
+      console.error('Error sending email notifications after request creation:', error);
+      // Don't fail the request creation if email fails
     }
 
+    // Return the request ID immediately so frontend can upload images
     res.status(201).json({
       success: true,
       message: 'Access request submitted successfully',
