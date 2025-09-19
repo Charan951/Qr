@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -33,7 +33,6 @@ import {
   Cancel,
   Delete,
   MarkEmailRead,
-  FilterList,
   Refresh,
   Close,
 } from '@mui/icons-material';
@@ -61,41 +60,13 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    fetchMessages();
-    fetchUnreadCount();
-  }, [filters, pagination.page]);
-
-  // Auto-mark all messages as read when MessageCenter opens
-  useEffect(() => {
-    const markAllAsReadOnOpen = async () => {
-      try {
-        const token = getAuthToken();
-        await axios.patch(getApiUrl('/api/messages/mark-all-read'), {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        // Refresh messages and unread count after marking as read
-        await fetchMessages();
-        await fetchUnreadCount();
-        // Notify parent component to update badge
-        if (onUnreadCountChange) {
-          onUnreadCountChange();
-        }
-      } catch (error) {
-        console.error('Error auto-marking messages as read:', error);
-      }
-    };
-
-    markAllAsReadOnOpen();
-  }, []); // Run only once when component mounts
-
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return userRole === 'admin' 
       ? localStorage.getItem('adminToken')
       : localStorage.getItem('hrToken');
-  };
+  }, [userRole]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true);
       const token = getAuthToken();
@@ -129,9 +100,9 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthToken, pagination.page, pagination.limit, filters.type, filters.isRead]);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const token = getAuthToken();
       const response = await axios.get(getApiUrl('/api/messages/unread-count'), {
@@ -144,7 +115,35 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
-  };
+  }, [getAuthToken]);
+
+  useEffect(() => {
+    fetchMessages();
+    fetchUnreadCount();
+  }, [fetchMessages, fetchUnreadCount]);
+
+  // Auto-mark all messages as read when MessageCenter opens
+  useEffect(() => {
+    const markAllAsReadOnOpen = async () => {
+      try {
+        const token = getAuthToken();
+        await axios.patch(getApiUrl('/api/messages/mark-all-read'), {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        // Refresh messages and unread count after marking as read
+        await fetchMessages();
+        await fetchUnreadCount();
+        // Notify parent component to update badge
+        if (onUnreadCountChange) {
+          onUnreadCountChange();
+        }
+      } catch (error) {
+        console.error('Error auto-marking messages as read:', error);
+      }
+    };
+
+    markAllAsReadOnOpen();
+  }, [fetchMessages, fetchUnreadCount, getAuthToken, onUnreadCountChange]); // Run only once when component mounts
 
   const markAsRead = async (messageId) => {
     try {
@@ -152,14 +151,25 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
       await axios.patch(getApiUrl(`/api/messages/${messageId}/read`), {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      // Update local state
+      
+      // Update the message in the local state
       setMessages(prev => prev.map(msg => 
-        msg._id === messageId ? { ...msg, isRead: true, readAt: new Date() } : msg
+        msg._id === messageId ? { ...msg, isRead: true } : msg
       ));
+      
+      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      // Notify parent component
+      if (onUnreadCountChange) {
+        onUnreadCountChange();
+      }
     } catch (error) {
       console.error('Error marking message as read:', error);
+      setMessage({
+        type: 'error',
+        text: 'Failed to mark message as read'
+      });
     }
   };
 

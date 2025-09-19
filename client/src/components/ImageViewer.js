@@ -1,57 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import { Close, ZoomIn, ZoomOut, RotateLeft, RotateRight } from '@mui/icons-material';
-import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 const ImageViewer = ({ requestId, images: propImages }) => {
   const [images, setImages] = useState(propImages || []);
   const [loading, setLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
   const [error, setError] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
 
-  useEffect(() => {
-    if (requestId && !propImages) {
-      fetchImages();
-    }
-  }, [requestId, propImages]);
-
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     if (!requestId) return;
-
-    console.log('ImageViewer: Fetching images for requestId:', requestId);
-    setLoading(true);
-    setError('');
-
+    
     try {
+      setLoading(true);
+      setError('');
+      
       // Try to get token from different sources (admin, hr, or regular token)
       const token = localStorage.getItem('adminToken') || 
                    localStorage.getItem('hrToken') || 
                    localStorage.getItem('token');
       
-      console.log('ImageViewer: Using token:', token ? 'Token found' : 'No token');
-      
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.IMAGES_REQUEST, requestId), {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.IMAGES, requestId), {
         headers: token ? {
           'Authorization': `Bearer ${token}`
         } : {}
       });
 
-      const data = await response.json();
-      console.log('ImageViewer: API response:', data);
-
       if (response.ok) {
-        console.log('ImageViewer: Setting images:', data.images || []);
-        setImages(data.images || []);
+        const data = await response.json();
+        if (data.success) {
+          setImages(data.images || []);
+        } else {
+          console.error('ImageViewer: API error:', data.message);
+          setError(data.message || 'Failed to fetch images');
+        }
       } else {
+        const data = await response.json();
         console.error('ImageViewer: API error:', data.message);
         setError(data.message || 'Failed to fetch images');
       }
@@ -61,7 +44,13 @@ const ImageViewer = ({ requestId, images: propImages }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
+
+  useEffect(() => {
+    if (requestId) {
+      fetchImages();
+    }
+  }, [requestId, fetchImages]);
 
   const deleteImage = async (imageUrl) => {
     if (!window.confirm('Are you sure you want to delete this image?')) {
