@@ -429,47 +429,19 @@ router.get('/email-action', async (req, res) => {
             </div>
             
             <div class="auto-close">
-              <p>This window will automatically close in:</p>
-              <div class="countdown" id="countdown">5</div>
-              <button class="close-btn" onclick="closeWindow()">Close Now</button>
+              <p>Action completed successfully!</p>
+              <div class="countdown" id="countdown">✓</div>
+              <button class="close-btn" onclick="closeWindow()">View Details</button>
             </div>
           </div>
         </div>
         
         <script>
-          let timeLeft = 5;
-          const countdownElement = document.getElementById('countdown');
-          
-          function updateCountdown() {
-            countdownElement.textContent = timeLeft;
-            if (timeLeft <= 0) {
-              closeWindow();
-            } else {
-              timeLeft--;
-              setTimeout(updateCountdown, 1000);
-            }
-          }
-          
           function closeWindow() {
-            // Try to close the window/tab
-            if (window.opener) {
-              window.close();
-            } else {
-              // If we can't close, show a message
-              document.querySelector('.auto-close').innerHTML = 
-                '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">You can safely close this tab.</p>';
-            }
+            // Instead of closing, just show completion message
+            document.querySelector('.auto-close').innerHTML = 
+              '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">The request has been processed and notifications have been sent.</p>';
           }
-          
-          // Start countdown when page loads
-          setTimeout(updateCountdown, 1000);
-          
-          // Add keyboard shortcut to close (Escape key)
-          document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-              closeWindow();
-            }
-          });
         </script>
       </body>
       </html>

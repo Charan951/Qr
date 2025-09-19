@@ -37,6 +37,20 @@ const AccessRequestForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate phone number (must be exactly 10 digits)
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      alert('Phone number must be exactly 10 digits');
+      return;
+    }
+    
+    // Validate that photo is captured (mandatory)
+    if (capturedImages.length === 0) {
+      alert('Photo capture is mandatory. Please capture your photo before submitting.');
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -245,8 +259,10 @@ const AccessRequestForm = () => {
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 required
+                pattern="[0-9]{10}"
+                maxLength="10"
                 className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
-                placeholder="+91 9876543210"
+                placeholder="9876543210"
                 whileFocus="focus"
                 variants={inputVariants}
               />
@@ -497,8 +513,8 @@ const AccessRequestForm = () => {
 
           {/* Live Image Capture */}
           <div className="mt-6">
-            <h3 className="text-white/80 mb-4 text-lg font-semibold">Optional: Capture Your Photo</h3>
-            <p className="text-white/60 mb-4 text-sm">You can capture a photo for identification purposes</p>
+            <h3 className="text-white/80 mb-4 text-lg font-semibold">Capture Your Photo *</h3>
+            <p className="text-white/60 mb-4 text-sm">Photo capture is mandatory for identification purposes</p>
             <ImageCapture 
               onImageCapture={handleImageCapture}
             />
