@@ -165,7 +165,7 @@ const AccessRequestForm = () => {
                      localStorage.getItem('hrToken') || 
                      localStorage.getItem('token');
 
-        await fetch('http://localhost:5000/api/images/upload', {
+        await fetch(getApiUrl('/api/images/upload'), {
           method: 'POST',
           headers: token ? {
             'Authorization': `Bearer ${token}`

@@ -176,11 +176,9 @@ router.get('/email-action', async (req, res) => {
     const actionBgColor = action === 'approve' ? '#e8f5e8' : '#ffeaea';
     
     res.send(`
-      <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Request ${actionText} - Access Management System</title>
         <style>
           * {
@@ -192,11 +190,11 @@ router.get('/email-action', async (req, res) => {
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
           }
           
           .container {
@@ -248,20 +246,201 @@ router.get('/email-action', async (req, res) => {
             100% { transform: scale(1); }
           }
           
-          .title {
+          .header h1 {
             color: ${actionColor};
-            font-size: 32px;
             font-weight: 700;
             margin-bottom: 10px;
+            font-size: 28px;
           }
           
-          .subtitle {
+          .header p {
             color: #666;
             font-size: 18px;
             font-weight: 400;
           }
           
           .content {
+            padding: 40px 30px;
+          }
+          
+          .success-message {
+            background: #f8f9fa;
+            border-left: 4px solid ${actionColor};
+            padding: 20px;
+            border-radius: 8px;
+          }
+          
+          
+          .success-message p {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 0;
+          }
+          
+          .details-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+          }
+          
+          .details-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+          }
+          
+          .details-title::before {
+            content: "📋";
+            margin-right: 10px;
+            font-size: 20px;
+          }
+          
+          .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          
+          .detail-row:last-child {
+            border-bottom: none;
+          }
+          
+          .detail-label {
+            font-weight: 600;
+            color: #555;
+            flex: 1;
+          }
+          
+          .detail-value {
+            color: #333;
+            flex: 2;
+            text-align: right;
+          }
+          
+          .notification-info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+          }
+          
+          .notification-info::before {
+            content: "📧";
+            margin-right: 10px;
+            font-size: 18px;
+          }
+          
+          .notification-info p {
+            margin: 0;
+            color: #1976d2;
+            font-size: 14px;
+          }
+          
+          .auto-close {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f1f3f4;
+            border-radius: 8px;
+          }
+          
+          .auto-close p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+          }
+          
+          .countdown {
+            font-size: 18px;
+            font-weight: 600;
+            color: ${actionColor};
+          }
+          
+          .close-btn {
+            background: ${actionColor};
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+          }
+          
+          .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            100% { transform: scale(1); }
+          }
+          
+          .subtitle {
+        <div class="container">
+          <div class="header">
+            <div class="icon">${actionIcon}</div>
+            <h1 class="title">Request ${actionText}</h1>
+            <p class="subtitle">Action completed successfully</p>
+          </div>
+          
+          <div class="content">
+            <div class="success-message">
+              <p>The access request has been successfully ${action}d and all relevant parties have been notified.</p>
+            </div>
+            
+            <div class="details-card">
+              <div class="details-title">Request Details</div>
+              <div class="detail-row">
+                <span class="detail-label">Request ID:</span>
+                <span class="detail-value">${requestId}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Applicant:</span>
+                <span class="detail-value">${accessRequest.fullName}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${accessRequest.email}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Action taken by:</span>
+                <span class="detail-value">${role.toUpperCase()} (${email})</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date & Time:</span>
+                <span class="detail-value">${new Date().toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div class="notification-info">
+              <p>Email notifications have been sent to the applicant and all relevant administrators.</p>
+            </div>
+            
+            <div class="auto-close">
+              <p>Action completed successfully!</p>
+              <div class="countdown" id="countdown">✓</div>
+              <button class="close-btn" onclick="closeWindow()">View Details</button>
+            </div>
+          </div>
+          .content {
+        
+        <script>
+          function closeWindow() {
+            // Instead of closing, just show completion message
+            document.querySelector('.auto-close').innerHTML = 
+              '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">The request has been processed and notifications have been sent.</p>';
+          }
+        </script>
             padding: 40px 30px;
           }
           

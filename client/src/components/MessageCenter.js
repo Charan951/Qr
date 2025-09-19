@@ -40,6 +40,7 @@ import {
 import axios from 'axios';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { getApiUrl } from '../config/api';
 
 dayjs.extend(relativeTime);
 
@@ -70,7 +71,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
     const markAllAsReadOnOpen = async () => {
       try {
         const token = getAuthToken();
-        await axios.patch('http://localhost:5000/api/messages/mark-all-read', {}, {
+        await axios.patch(getApiUrl('/api/messages/mark-all-read'), {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         // Refresh messages and unread count after marking as read
@@ -106,7 +107,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
         ...(filters.isRead !== 'all' && { isRead: filters.isRead }),
       };
 
-      const response = await axios.get('http://localhost:5000/api/messages', {
+      const response = await axios.get(getApiUrl('/api/messages'), {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
@@ -133,7 +134,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
   const fetchUnreadCount = async () => {
     try {
       const token = getAuthToken();
-      const response = await axios.get('http://localhost:5000/api/messages/unread-count', {
+      const response = await axios.get(getApiUrl('/api/messages/unread-count'), {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -148,7 +149,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
   const markAsRead = async (messageId) => {
     try {
       const token = getAuthToken();
-      await axios.patch(`http://localhost:5000/api/messages/${messageId}/read`, {}, {
+      await axios.patch(getApiUrl(`/api/messages/${messageId}/read`), {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -165,7 +166,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
   const markAllAsRead = async () => {
     try {
       const token = getAuthToken();
-      const response = await axios.patch('http://localhost:5000/api/messages/mark-all-read', {}, {
+      const response = await axios.patch(getApiUrl('/api/messages/mark-all-read'), {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -189,7 +190,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
   const deleteMessage = async (messageId) => {
     try {
       const token = getAuthToken();
-      await axios.delete(`http://localhost:5000/api/messages/${messageId}`, {
+      await axios.delete(getApiUrl(`/api/messages/${messageId}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
 

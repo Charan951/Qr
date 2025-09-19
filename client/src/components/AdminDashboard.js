@@ -214,7 +214,7 @@ const AdminDashboard = () => {
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/messages/unread-count', {
+      const response = await axios.get(getApiUrl('/api/messages/unread-count'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUnreadCount(response.data.unreadCount || 0);
