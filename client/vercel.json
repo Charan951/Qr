@@ -23,7 +23,7 @@
     }
   ],
   "env": {
-    "REACT_APP_API_BASE_URL": "https://your-render-app.onrender.com",
+    "REACT_APP_API_BASE_URL": "https://qr-ixts.onrender.com",
     "GENERATE_SOURCEMAP": "false",
     "CI": "false"
   }
