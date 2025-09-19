@@ -1,17 +1,16 @@
-const AWS = require('aws-sdk');
+const { S3Client, ListObjectsCommand } = require('@aws-sdk/client-s3');
 
 // AWS Configuration
 const awsConfig = {
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAWXDXCIJMTVDLGZB4',
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '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',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAWXDXCIJMTVDLGZB4',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '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',
+  },
   region: process.env.AWS_REGION || 'ap-south-1'
 };
 
-// Configure AWS
-AWS.config.update(awsConfig);
-
-// Create S3 instance
-const s3 = new AWS.S3();
+// Create S3 client
+const s3 = new S3Client(awsConfig);
 
 // S3 Bucket configuration
 const S3_BUCKET = process.env.AWS_S3_BUCKET_NAME || 'speshway-dev-bucket1';
@@ -20,7 +19,8 @@ const S3_BUCKET = process.env.AWS_S3_BUCKET_NAME || 'speshway-dev-bucket1';
 const testS3Connection = async () => {
   try {
     console.log('Testing S3 connection...');
-    const result = await s3.listObjects({ Bucket: S3_BUCKET, MaxKeys: 1 }).promise();
+    const command = new ListObjectsCommand({ Bucket: S3_BUCKET, MaxKeys: 1 });
+    const result = await s3.send(command);
     console.log('S3 connection successful!');
     return true;
   } catch (error) {

@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
-const AWS = require('aws-sdk');
 const { s3, S3_BUCKET } = require('../config/aws');
+const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const AccessRequest = require('../models/AccessRequest');
 
 const router = express.Router();
@@ -58,10 +58,9 @@ router.post('/upload', (req, res, next) => {
     };
 
     console.log('Uploading to S3...');
-    const uploadResult = await s3.upload(uploadParams).promise();
-    console.log('File uploaded to S3:', uploadResult.Location);
-
-    const imageUrl = uploadResult.Location;
+    const uploadResult = await s3.send(new PutObjectCommand(uploadParams));
+    const imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
+    console.log('File uploaded to S3:', imageUrl);
     const { requestId } = req.body;
 
     // Update access request with image URL if requestId is provided
@@ -165,10 +164,10 @@ router.delete('/:filename', async (req, res) => {
     const { filename } = req.params;
     
     // Delete from S3
-    await s3.deleteObject({
+    await s3.send(new DeleteObjectCommand({
       Bucket: S3_BUCKET,
       Key: filename
-    }).promise();
+    }));
 
     // Remove from database (find and update all requests that have this image)
     await AccessRequest.updateMany(
