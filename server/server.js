@@ -20,27 +20,33 @@ app.use(cors({
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
     'https://qr-oj5t.vercel.app',
+    'https://qr-oj5t-git-master-charan951s-projects.vercel.app',
+    'https://qr-oj5t-charan951s-projects.vercel.app',
     process.env.FRONTEND_URL,
     process.env.CLIENT_URL
   ].filter(Boolean),
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  optionsSuccessStatus: 200
 }));
+
+// Add explicit OPTIONS handling for preflight requests
+app.options('*', cors());
 
 // Skip body parsing for image upload routes
 app.use((req, res, next) => {
   if (req.path === '/api/images/upload') {
     return next();
   }
-  express.json()(req, res, next);
+  express.json({ limit: '50mb' })(req, res, next);
 });
 
 app.use((req, res, next) => {
   if (req.path === '/api/images/upload') {
     return next();
   }
-  express.urlencoded({ extended: true })(req, res, next);
+  express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
 });
 
 // Connect to MongoDB with timeout and retry logic

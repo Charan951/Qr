@@ -224,8 +224,12 @@ const HRDashboard = () => {
       };
 
       const response = await axios.get(getApiUrl(API_ENDPOINTS.HR_REQUESTS), {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
         params,
+        timeout: 10000, // 10 second timeout
       });
 
       setRequests(response.data.data);
@@ -233,8 +237,24 @@ const HRDashboard = () => {
       setStats(response.data.counts);
     } catch (error) {
       console.error('Error fetching requests:', error);
-      if (error.response?.status === 401) {
+      
+      if (error.code === 'ECONNABORTED') {
+        setMessage({
+          type: 'error',
+          text: 'Request timeout. Please check your connection and try again.',
+        });
+      } else if (error.response?.status === 401) {
         handleLogout();
+      } else if (error.response?.status >= 500) {
+        setMessage({
+          type: 'error',
+          text: 'Server error. Please try again later.',
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: error.response?.data?.message || 'Failed to fetch requests',
+        });
       }
     } finally {
       setLoading(false);

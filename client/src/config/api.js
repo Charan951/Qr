@@ -2,12 +2,18 @@
 const API_CONFIG = {
   // Dynamic Base URL - works for both development and production
   BASE_URL: (() => {
+    // Check if we have a custom API URL in environment
+    if (process.env.REACT_APP_API_BASE_URL) {
+      return process.env.REACT_APP_API_BASE_URL;
+    }
+    
     // In production, use the environment variable or fallback to production URL
     if (process.env.NODE_ENV === 'production') {
-      return process.env.REACT_APP_API_BASE_URL || 'https://qr-nk38.onrender.com';
+      return 'https://qr-nk38.onrender.com';
     }
-    // In development, use localhost
-    return process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+    
+    // In development, use localhost with the correct port
+    return 'http://localhost:5000';
   })(),
   
   // API endpoints
