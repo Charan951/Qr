@@ -27,12 +27,7 @@ const ImageViewer = ({ requestId, images: propImages }) => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setImages(data.images || []);
-        } else {
-          console.error('ImageViewer: API error:', data.message);
-          setError(data.message || 'Failed to fetch images');
-        }
+        setImages(data.images || []);
       } else {
         const data = await response.json();
         console.error('ImageViewer: API error:', data.message);

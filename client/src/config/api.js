@@ -34,7 +34,7 @@ const API_CONFIG = {
     
     // General routes
     REQUESTS: '/api/requests',
-    IMAGES: '/api/images',
+    IMAGES: '/api/images/request',
     IMAGES_REQUEST: '/api/images/request',
     UPLOAD: '/api/images/upload',
   }
