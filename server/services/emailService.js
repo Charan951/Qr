@@ -1,5 +1,20 @@
 const nodemailer = require('nodemailer');
 
+// Helper function to format date and time in IST
+const formatDateTimeIST = (date) => {
+  const istDate = new Date(date);
+  return istDate.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
 // Create transporter using environment variables
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -156,7 +171,7 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
               <h4 style="margin: 0 0 10px 0; color: #333;">Request Details:</h4>
               <p style="margin: 5px 0; color: #666;"><strong>User:</strong> ${userName}</p>
               <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> <span style="color: ${statusColor};">${status.toUpperCase()} by ${approverName}</span></p>
-              <p style="margin: 5px 0; color: #666;"><strong>Action Date:</strong> ${new Date().toLocaleString()}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Action Date:</strong> ${formatDateTimeIST(new Date())}</p>
             </div>
             
             ${imagesHtml}
@@ -328,8 +343,8 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
           </div>
           
           <div>
-            <p style="margin: 5px 0; color: #666;"><strong>Submitted Date:</strong> ${new Date(requestData.submittedDate).toLocaleDateString()}</p>
-            <p style="margin: 5px 0; color: #666;"><strong>Submitted Time:</strong> ${requestData.submittedTime || new Date(requestData.submittedDate).toLocaleTimeString()}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Submitted Date:</strong> ${formatDateTimeIST(requestData.submittedDate)}</p>
+            <p style="margin: 5px 0; color: #666;"><strong>Submitted Time:</strong> ${requestData.submittedTime || formatDateTimeIST(requestData.submittedDate)}</p>
             <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> <span style="background-color: #ff9800; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;">PENDING</span></p>
           </div>
         </div>`;

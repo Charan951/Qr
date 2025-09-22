@@ -1,5 +1,6 @@
 const express = require('express');
 const AccessRequest = require('../models/AccessRequest');
+const { formatDateTimeIST } = require('../services/emailService');
 const router = express.Router();
 
 // @route   GET /api/requests/email-action
@@ -426,7 +427,7 @@ router.get('/email-action', async (req, res) => {
               </div>
               <div class="detail-row">
                 <span class="detail-label">Date & Time:</span>
-                <span class="detail-value">${new Date().toLocaleString()}</span>
+                <span class="detail-value">${formatDateTimeIST(new Date())}</span>
               </div>
             </div>
             
