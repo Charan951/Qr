@@ -8,91 +8,297 @@ const router = express.Router();
 // @access  Public (secured by token)
 router.get('/email-action', async (req, res) => {
   try {
+    // Add CORS headers for production
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    console.log('Email action endpoint accessed:', {
+      query: req.query,
+      timestamp: new Date().toISOString(),
+      ip: req.ip || req.connection.remoteAddress
+    });
+
     const { token } = req.query;
     
     if (!token) {
+      console.log('Email action failed: No token provided');
       return res.status(400).send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #f44336;">Invalid Request</h2>
-            <p>No token provided.</p>
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invalid Request - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Request</h2>
+              <p style="color: #666; font-size: 16px;">No token provided in the request.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or contact your administrator.</p>
+            </div>
           </body>
         </html>
       `);
     }
 
-    // Decode the token
+    // Decode the token with better error handling
     let tokenData;
     try {
-      tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
+      console.log('Attempting to decode token:', token.substring(0, 20) + '...');
+      const decodedString = Buffer.from(token, 'base64').toString('utf8');
+      console.log('Decoded string length:', decodedString.length);
+      tokenData = JSON.parse(decodedString);
+      console.log('Token decoded successfully:', {
+        requestId: tokenData.requestId,
+        action: tokenData.action,
+        role: tokenData.role,
+        email: tokenData.email ? tokenData.email.substring(0, 5) + '...' : 'undefined'
+      });
     } catch (error) {
+      console.error('Token decoding failed:', {
+        error: error.message,
+        token: token.substring(0, 50) + '...',
+        tokenLength: token.length
+      });
       return res.status(400).send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #f44336;">Invalid Token</h2>
-            <p>The token is malformed or corrupted.</p>
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invalid Token - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Token</h2>
+              <p style="color: #666; font-size: 16px;">The token is malformed or corrupted.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or request a new approval email.</p>
+            </div>
           </body>
         </html>
       `);
     }
 
+    // Validate token data structure
     const { requestId, action, role, email, timestamp } = tokenData;
+    
+    if (!requestId || !action || !role || !email || !timestamp) {
+      console.error('Invalid token data structure:', {
+        hasRequestId: !!requestId,
+        hasAction: !!action,
+        hasRole: !!role,
+        hasEmail: !!email,
+        hasTimestamp: !!timestamp
+      });
+      return res.status(400).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invalid Token Data - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Token Data</h2>
+              <p style="color: #666; font-size: 16px;">The token is missing required information.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please request a new approval email from your administrator.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+
+    // Validate action type
+    if (!['approve', 'reject'].includes(action)) {
+      console.error('Invalid action in token:', action);
+      return res.status(400).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Invalid Action - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Action</h2>
+              <p style="color: #666; font-size: 16px;">The requested action is not valid.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or contact your administrator.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
 
     // Check if token is expired (24 hours)
     const tokenAge = Date.now() - timestamp;
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
     if (tokenAge > maxAge) {
+      console.log('Token expired:', {
+        tokenAge: Math.round(tokenAge / (1000 * 60 * 60)) + ' hours',
+        maxAge: '24 hours',
+        requestId
+      });
       return res.status(400).send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #f44336;">Token Expired</h2>
-            <p>This approval/rejection link has expired. Please use the dashboard to take action.</p>
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Token Expired - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Token Expired</h2>
+              <p style="color: #666; font-size: 16px;">This approval/rejection link has expired.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the dashboard to take action or request a new approval email.</p>
+            </div>
           </body>
         </html>
       `);
     }
 
-    // Find the access request
-    const accessRequest = await AccessRequest.findById(requestId);
-    if (!accessRequest) {
-      return res.status(404).send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #f44336;">Request Not Found</h2>
-            <p>The access request could not be found.</p>
+    // Find the access request with better error handling
+    let accessRequest;
+    try {
+      console.log('Looking up access request:', requestId);
+      accessRequest = await AccessRequest.findById(requestId);
+    } catch (dbError) {
+      console.error('Database error while finding access request:', {
+        error: dbError.message,
+        requestId
+      });
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Database Error - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Database Error</h2>
+              <p style="color: #666; font-size: 16px;">Unable to process the request due to a database error.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please try again later or contact your administrator.</p>
+            </div>
           </body>
         </html>
       `);
     }
+
+    if (!accessRequest) {
+      console.log('Access request not found:', requestId);
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Request Not Found - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Request Not Found</h2>
+              <p style="color: #666; font-size: 16px;">The access request could not be found.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">The request may have been deleted or the ID is incorrect.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+
+    console.log('Access request found:', {
+      id: accessRequest._id,
+      status: accessRequest.status,
+      fullName: accessRequest.fullName,
+      email: accessRequest.email
+    });
 
     // Check if request is already processed
     if (accessRequest.status !== 'pending') {
+      console.log('Request already processed:', {
+        requestId,
+        currentStatus: accessRequest.status,
+        processedBy: accessRequest.approvedBy || accessRequest.rejectedBy
+      });
       return res.status(400).send(`
-        <html>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h2 style="color: #ff9800;">Already Processed</h2>
-            <p>This request has already been ${accessRequest.status}.</p>
-            <p><strong>Processed by:</strong> ${accessRequest.approvedBy || accessRequest.rejectedBy || 'Unknown'}</p>
-            <p><strong>Date:</strong> ${accessRequest.approvedDate || accessRequest.rejectedDate || 'Unknown'}</p>
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Already Processed - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #ff9800; margin-bottom: 20px;">Already Processed</h2>
+              <p style="color: #666; font-size: 16px;">This request has already been <strong>${accessRequest.status}</strong>.</p>
+              <div style="margin-top: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+                <p style="color: #333; margin: 5px 0;"><strong>Processed by:</strong> ${accessRequest.approvedBy || accessRequest.rejectedBy || 'Unknown'}</p>
+                <p style="color: #333; margin: 5px 0;"><strong>Date:</strong> ${formatDateTimeIST(accessRequest.approvedDate || accessRequest.rejectedDate) || 'Unknown'}</p>
+              </div>
+            </div>
           </body>
         </html>
       `);
     }
 
     // Update the request based on action
+    console.log('Processing action:', {
+      requestId,
+      action,
+      role,
+      email: email.substring(0, 5) + '...'
+    });
+
     const updateData = {
       status: action === 'approve' ? 'approved' : 'rejected',
       [`${action}dBy`]: `${role.toUpperCase()} (${email})`,
       [`${action}dDate`]: new Date()
     };
 
-    await AccessRequest.findByIdAndUpdate(requestId, updateData);
+    try {
+      await AccessRequest.findByIdAndUpdate(requestId, updateData);
+      console.log('Access request updated successfully:', {
+        requestId,
+        newStatus: updateData.status,
+        processedBy: updateData[`${action}dBy`]
+      });
+    } catch (updateError) {
+      console.error('Error updating access request:', {
+        error: updateError.message,
+        requestId,
+        updateData
+      });
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Update Error - Access Management System</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <h2 style="color: #f44336; margin-bottom: 20px;">Update Error</h2>
+              <p style="color: #666; font-size: 16px;">Unable to update the request status.</p>
+              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please try again later or contact your administrator.</p>
+            </div>
+          </body>
+        </html>
+      `);
+    }
 
     // Send email notifications and create messages (same as HR/Admin dashboard approval)
     try {
       const { sendAccessRequestNotification, sendActionNotificationToStaff } = require('../services/emailService');
       const User = require('../models/User');
       const Message = require('../models/Message');
+
+      console.log('Starting email notification process...');
 
       // Send email to the user who made the request
       await sendAccessRequestNotification(
@@ -103,9 +309,12 @@ router.get('/email-action', async (req, res) => {
         `Email Action (${email})`,
         accessRequest
       );
+      console.log('Notification sent to request user:', accessRequest.email);
 
       // Send notification emails to all HR users (except the one who took action)
       const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+      console.log('Found HR users:', hrUsers.length);
+      
       for (const hrUser of hrUsers) {
         if (hrUser.email && hrUser.email !== email) {
           const recipientName = hrUser.username || hrUser.email.split('@')[0];
@@ -129,6 +338,8 @@ router.get('/email-action', async (req, res) => {
 
       // Send notification emails to all Admin users (except the one who took action)
       const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+      console.log('Found Admin users:', adminUsers.length);
+      
       for (const adminUser of adminUsers) {
         if (adminUser.email && adminUser.email !== email) {
           const recipientName = adminUser.username || adminUser.email.split('@')[0];
@@ -160,6 +371,7 @@ router.get('/email-action', async (req, res) => {
           requestId: accessRequest._id,
           userId: accessRequest._id
         });
+        console.log('Approval message created successfully');
       } else {
         await Message.createRejectionMessage({
           userName: accessRequest.fullName,
@@ -170,12 +382,18 @@ router.get('/email-action', async (req, res) => {
           userId: accessRequest._id,
           reason: 'Rejected via email'
         });
+        console.log('Rejection message created successfully');
       }
 
       console.log('Email notifications and messages sent successfully for email action');
     } catch (emailError) {
-      console.error('Error sending notifications for email action:', emailError);
-      // Don't fail the request update if email fails
+      console.error('Error sending notifications for email action:', {
+        error: emailError.message,
+        stack: emailError.stack,
+        requestId,
+        action
+      });
+      // Don't fail the request update if email fails - just log it
     }
 
     // Send success response
@@ -184,10 +402,18 @@ router.get('/email-action', async (req, res) => {
     const actionIcon = action === 'approve' ? '✓' : '✗';
     const actionBgColor = action === 'approve' ? '#e8f5e8' : '#ffeaea';
     
+    console.log('Sending success response for:', {
+      requestId,
+      action: actionText,
+      timestamp: new Date().toISOString()
+    });
+    
     res.send(`
+      <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Request ${actionText} - Access Management System</title>
         <style>
           * {
@@ -231,417 +457,179 @@ router.get('/email-action', async (req, res) => {
             background: ${actionBgColor};
             padding: 40px 30px;
             text-align: center;
-            border-bottom: 3px solid ${actionColor};
           }
           
           .icon {
-            width: 80px;
-            height: 80px;
-            background: ${actionColor};
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 40px;
-            color: white;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-          }
-          
-          @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-          }
-          
-          .header h1 {
+            font-size: 60px;
             color: ${actionColor};
-            font-weight: 700;
-            margin-bottom: 10px;
-            font-size: 28px;
-          }
-          
-          .header p {
-            color: #666;
-            font-size: 18px;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 40px 30px;
-          }
-          
-          .success-message {
-            background: #f8f9fa;
-            border-left: 4px solid ${actionColor};
-            padding: 20px;
-            border-radius: 8px;
-          }
-          
-          
-          .success-message p {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 0;
-          }
-          
-          .details-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 20px 0;
-            border: 1px solid #e9ecef;
-          }
-          
-          .details-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
             margin-bottom: 20px;
-            display: flex;
-            align-items: center;
+            display: block;
           }
           
-          .details-title::before {
-            content: "📋";
-            margin-right: 10px;
-            font-size: 20px;
-          }
-          
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          
-          .detail-row:last-child {
-            border-bottom: none;
-          }
-          
-          .detail-label {
-            font-weight: 600;
-            color: #555;
-            flex: 1;
-          }
-          
-          .detail-value {
-            color: #333;
-            flex: 2;
-            text-align: right;
-          }
-          
-          .notification-info {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-          }
-          
-          .notification-info::before {
-            content: "📧";
-            margin-right: 10px;
-            font-size: 18px;
-          }
-          
-          .notification-info p {
-            margin: 0;
-            color: #1976d2;
-            font-size: 14px;
-          }
-          
-          .auto-close {
-            text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            background: #f1f3f4;
-            border-radius: 8px;
-          }
-          
-          .auto-close p {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-          }
-          
-          .countdown {
-            font-size: 18px;
-            font-weight: 600;
+          .title {
+            font-size: 32px;
+            font-weight: 700;
             color: ${actionColor};
-          }
-          
-          .close-btn {
-            background: ${actionColor};
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: all 0.3s ease;
-          }
-          
-          .close-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            100% { transform: scale(1); }
+            margin-bottom: 10px;
           }
           
           .subtitle {
-        <div class="container">
-          <div class="header">
-            <div class="icon">${actionIcon}</div>
-            <h1 class="title">Request ${actionText}</h1>
-            <p class="subtitle">Action completed successfully</p>
-          </div>
+            font-size: 18px;
+            color: #666;
+            margin: 0;
+          }
           
-          <div class="content">
-            <div class="success-message">
-              <p>The access request has been successfully ${action}d and all relevant parties have been notified.</p>
-            </div>
-            
-            <div class="details-card">
-              <div class="details-title">Request Details</div>
-              <div class="detail-row">
-                <span class="detail-label">Request ID:</span>
-                <span class="detail-value">${requestId}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Applicant:</span>
-                <span class="detail-value">${accessRequest.fullName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Email:</span>
-                <span class="detail-value">${accessRequest.email}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Action taken by:</span>
-                <span class="detail-value">${role.toUpperCase()} (${email})</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Date & Time:</span>
-                <span class="detail-value">${formatDateTimeIST(new Date())}</span>
-              </div>
-            </div>
-            
-            <div class="notification-info">
-              <p>Email notifications have been sent to the applicant and all relevant administrators.</p>
-            </div>
-            
-            <div class="auto-close">
-              <p>Action completed successfully!</p>
-              <div class="countdown" id="countdown">✓</div>
-              <button class="close-btn" onclick="closeWindow()">View Details</button>
-            </div>
-          </div>
           .content {
-        
-        <script>
-          function closeWindow() {
-            // Instead of closing, just show completion message
-            document.querySelector('.auto-close').innerHTML = 
-              '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">The request has been processed and notifications have been sent.</p>';
-          }
-        </script>
             padding: 40px 30px;
+            text-align: center;
           }
           
-          .success-message {
+          .info-box {
             background: #f8f9fa;
-            border-left: 4px solid ${actionColor};
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-          }
-          
-          .success-message p {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 0;
-          }
-          
-          .details-card {
-            background: #f8f9fa;
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 25px;
-            margin: 20px 0;
-            border: 1px solid #e9ecef;
+            margin: 25px 0;
+            border-left: 4px solid ${actionColor};
           }
           
-          .details-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-          }
-          
-          .details-title::before {
-            content: "📋";
-            margin-right: 10px;
-            font-size: 20px;
-          }
-          
-          .detail-row {
+          .info-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
           }
           
-          .detail-row:last-child {
+          .info-row:last-child {
             border-bottom: none;
           }
           
-          .detail-label {
+          .info-label {
             font-weight: 600;
-            color: #555;
-            flex: 1;
-          }
-          
-          .detail-value {
             color: #333;
-            flex: 2;
+          }
+          
+          .info-value {
+            color: #666;
             text-align: right;
+            max-width: 60%;
+            word-break: break-word;
           }
           
-          .notification-info {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-          }
-          
-          .notification-info::before {
-            content: "📧";
-            margin-right: 10px;
-            font-size: 18px;
-          }
-          
-          .notification-info p {
-            margin: 0;
-            color: #1976d2;
-            font-size: 14px;
-          }
-          
-          .auto-close {
+          .footer {
+            padding: 30px;
+            background: #f8f9fa;
             text-align: center;
-            margin-top: 30px;
-            padding: 20px;
-            background: #f1f3f4;
-            border-radius: 8px;
-          }
-          
-          .auto-close p {
             color: #666;
             font-size: 14px;
-            margin-bottom: 10px;
           }
           
-          .countdown {
-            font-size: 18px;
-            font-weight: 600;
-            color: ${actionColor};
-          }
-          
-          .close-btn {
-            background: ${actionColor};
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: all 0.3s ease;
-          }
-          
-          .close-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+          @media (max-width: 600px) {
+            body {
+              padding: 10px;
+            }
+            
+            .container {
+              margin: 0;
+            }
+            
+            .header, .content, .footer {
+              padding: 20px;
+            }
+            
+            .title {
+              font-size: 24px;
+            }
+            
+            .info-row {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            
+            .info-value {
+              text-align: left;
+              max-width: 100%;
+              margin-top: 5px;
+            }
           }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <div class="icon">${actionIcon}</div>
+            <span class="icon">${actionIcon}</span>
             <h1 class="title">Request ${actionText}</h1>
-            <p class="subtitle">Action completed successfully</p>
+            <p class="subtitle">The access request has been successfully ${action}d</p>
           </div>
           
           <div class="content">
-            <div class="success-message">
-              <p>The access request has been successfully ${action}d and all relevant parties have been notified.</p>
+            <div class="info-box">
+              <div class="info-row">
+                <span class="info-label">Request ID:</span>
+                <span class="info-value">${requestId}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Applicant:</span>
+                <span class="info-value">${accessRequest.fullName}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">${accessRequest.email}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Action Taken:</span>
+                <span class="info-value">${actionText} by ${role.toUpperCase()}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Processed By:</span>
+                <span class="info-value">${email}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Date & Time:</span>
+                <span class="info-value">${formatDateTimeIST(new Date())}</span>
+              </div>
             </div>
             
-            <div class="details-card">
-              <div class="details-title">Request Details</div>
-              <div class="detail-row">
-                <span class="detail-label">Request ID:</span>
-                <span class="detail-value">${requestId}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Applicant:</span>
-                <span class="detail-value">${accessRequest.fullName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Email:</span>
-                <span class="detail-value">${accessRequest.email}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Action taken by:</span>
-                <span class="detail-value">${role.toUpperCase()} (${email})</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Date & Time:</span>
-                <span class="detail-value">${new Date().toLocaleString()}</span>
-              </div>
-            </div>
-            
-            <div class="notification-info">
-              <p>Email notifications have been sent to the applicant and all relevant administrators.</p>
-            </div>
-            
-            <div class="auto-close">
-              <p>Action completed successfully!</p>
-              <div class="countdown" id="countdown">✓</div>
-              <button class="close-btn" onclick="closeWindow()">View Details</button>
-            </div>
+            <p style="color: #666; margin-top: 30px;">
+              ${action === 'approve' 
+                ? 'The applicant has been notified of the approval and can now proceed with their access request.' 
+                : 'The applicant has been notified of the rejection. They may submit a new request if needed.'
+              }
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>Access Management System</p>
+            <p>This action was processed via email link on ${formatDateTimeIST(new Date())}</p>
           </div>
         </div>
-        
-        <script>
-          function closeWindow() {
-            // Instead of closing, just show completion message
-            document.querySelector('.auto-close').innerHTML = 
-              '<p style="color: #4CAF50; font-weight: 600;">✓ Action completed successfully!</p><p style="color: #666; font-size: 14px;">The request has been processed and notifications have been sent.</p>';
-          }
-        </script>
       </body>
       </html>
     `);
 
   } catch (error) {
-    console.error('Error processing email action:', error);
+    console.error('Error in email action endpoint:', {
+      error: error.message,
+      stack: error.stack,
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
+    
     res.status(500).send(`
-      <html>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-          <h2 style="color: #f44336;">Server Error</h2>
-          <p>An error occurred while processing your request. Please try again later.</p>
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Server Error - Access Management System</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color: #f44336; margin-bottom: 20px;">Server Error</h2>
+            <p style="color: #666; font-size: 16px;">An unexpected error occurred while processing your request.</p>
+            <p style="color: #999; font-size: 14px; margin-top: 30px;">Please try again later or contact your administrator.</p>
+          </div>
         </body>
       </html>
     `);

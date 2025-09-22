@@ -27,7 +27,7 @@
     }
   ],
   "env": {
-    "REACT_APP_API_BASE_URL": "https://qr-jxts.onrender.com",
+    "REACT_APP_API_BASE_URL": "https://qr-nk38.onrender.com",
     "GENERATE_SOURCEMAP": "false",
     "CI": "false",
     "SKIP_PREFLIGHT_CHECK": "true",
