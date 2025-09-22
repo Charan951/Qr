@@ -244,7 +244,7 @@ const AccessRequestForm = () => {
                 onChange={handleChange}
                 required
                 className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
-                placeholder="John Doe"
+                placeholder="Enter Your FullName "
                 whileFocus="focus"
                 variants={inputVariants}
               />
@@ -262,7 +262,7 @@ const AccessRequestForm = () => {
                 pattern="[0-9]{10}"
                 maxLength="10"
                 className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
-                placeholder="9876543210"
+                placeholder="Enter Your Number "
                 whileFocus="focus"
                 variants={inputVariants}
               />
@@ -280,7 +280,7 @@ const AccessRequestForm = () => {
               onChange={handleChange}
               required
               className="px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm sm:text-base transition-all duration-300"
-              placeholder="you@example.com"
+              placeholder="Enter Your Email"
               whileFocus="focus"
               variants={inputVariants}
             />
@@ -315,7 +315,7 @@ const AccessRequestForm = () => {
               onChange={handleChange}
               required
               className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              placeholder="Host Name"
+              placeholder=" Name"
             />
           </div>
 
@@ -343,7 +343,7 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'onboarding'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-pink-400"
-                  placeholder="+91 98765 43210"
+                  placeholder="Enter Number"
                 />
               </div>
             </div>
@@ -401,7 +401,7 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'interview'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="+91 98765 43210"
+                  placeholder="Enter Number"
                 />
               </div>
             </div>
@@ -419,7 +419,7 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'training'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="Training Program Name"
+                  placeholder="Trainer  Name"
                 />
               </div>
               <div className="flex flex-col">
@@ -476,7 +476,7 @@ const AccessRequestForm = () => {
                 required={formData.purposeOfAccess === 'visitor'}
                 rows="3"
                 className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
-                placeholder="Purpose of visit description..."
+                placeholder="Reason"
               />
             </div>
           )}
@@ -505,7 +505,7 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'client'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                  placeholder="+91 98765 43210"
+                  placeholder="Enter Number "
                 />
               </div>
             </div>
