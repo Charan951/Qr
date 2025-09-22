@@ -218,7 +218,7 @@ const HRLogin = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <motion.img 
-                    src="/logo.png"
+                    src={process.env.PUBLIC_URL + "/logo.png"}
                     alt="Speshway Solutions Logo" 
                     style={{ width: '32px', height: '32px', marginRight: '8px' }}
                     variants={iconVariants}

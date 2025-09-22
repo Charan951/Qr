@@ -138,7 +138,7 @@ const Layout = ({ children }) => {
             
             <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
               <motion.img 
-                  src="/logo.png"
+                  src={process.env.PUBLIC_URL + "/logo.png"}
                   alt="Speshway Solutions Logo" 
                   style={{ 
                     width: '32px', 
