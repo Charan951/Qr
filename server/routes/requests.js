@@ -89,7 +89,7 @@ router.get('/email-action', async (req, res) => {
 
     // Send email notifications and create messages (same as HR/Admin dashboard approval)
     try {
-      const { sendAccessRequestNotification, sendApproverNotification } = require('../services/emailService');
+      const { sendAccessRequestNotification, sendActionNotificationToStaff } = require('../services/emailService');
       const User = require('../models/User');
       const Message = require('../models/Message');
 
@@ -103,15 +103,18 @@ router.get('/email-action', async (req, res) => {
         accessRequest
       );
 
-      // Send notification emails to all HR users
+      // Send notification emails to all HR users (except the one who took action)
       const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
       for (const hrUser of hrUsers) {
-        if (hrUser.email) {
-          await sendApproverNotification(
+        if (hrUser.email && hrUser.email !== email) {
+          const recipientName = hrUser.username || hrUser.email.split('@')[0];
+          await sendActionNotificationToStaff(
             hrUser.email,
-            `Email Action (${email})`,
+            recipientName,
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
+            `${role.toUpperCase()} (${email})`,
+            new Date(),
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
@@ -119,18 +122,22 @@ router.get('/email-action', async (req, res) => {
               images: accessRequest.images
             }
           );
+          console.log(`Action notification sent to HR: ${hrUser.email}`);
         }
       }
 
-      // Send notification emails to all Admin users
+      // Send notification emails to all Admin users (except the one who took action)
       const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
       for (const adminUser of adminUsers) {
-        if (adminUser.email) {
-          await sendApproverNotification(
+        if (adminUser.email && adminUser.email !== email) {
+          const recipientName = adminUser.username || adminUser.email.split('@')[0];
+          await sendActionNotificationToStaff(
             adminUser.email,
-            `Email Action (${email})`,
+            recipientName,
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
+            `${role.toUpperCase()} (${email})`,
+            new Date(),
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
@@ -138,6 +145,7 @@ router.get('/email-action', async (req, res) => {
               images: accessRequest.images
             }
           );
+          console.log(`Action notification sent to Admin: ${adminUser.email}`);
         }
       }
 
