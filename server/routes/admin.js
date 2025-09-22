@@ -193,81 +193,99 @@ router.patch('/requests/:id', async (req, res) => {
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    // Send email notifications and create messages
-    try {
-      // Send email to the user who made the request
-      await sendAccessRequestNotification(
-        request.email,
-        request.fullName,
-        status,
-        'Admin',
-        req.user.username,
-        request
-      );
+    // Process notifications asynchronously to improve response time
+    setImmediate(async () => {
+      try {
+        // Get all required users in a single optimized query
+        const [adminUser, hrUsers] = await Promise.all([
+          User.findOne({ username: req.user.username }).select('email'),
+          User.find({ role: 'hr', isActive: true }).select('email')
+        ]);
 
-      // Send confirmation email to the admin who took the action
-      const adminUser = await User.findOne({ username: req.user.username });
-      if (adminUser && adminUser.email) {
-        await sendApproverNotification(
-            adminUser.email,
-            req.user.username,
+        // Prepare all email operations
+        const emailPromises = [];
+        
+        // Send email to the user who made the request
+        emailPromises.push(
+          sendAccessRequestNotification(
+            request.email,
             request.fullName,
             status,
-            {
-              email: request.email,
-              purpose: request.purposeOfAccess,
-              whomToMeet: request.whomToMeet,
-              images: request.images
-            }
-          );
-      }
-
-      // Send notification emails to all HR users
-      const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email');
-      for (const hrUser of hrUsers) {
-        if (hrUser.email) {
-          await sendApproverNotification(
-            hrUser.email,
+            'Admin',
             req.user.username,
-            request.fullName,
-            status,
-            {
-              email: request.email,
-              purpose: request.purposeOfAccess,
-              whomToMeet: request.whomToMeet,
-              images: request.images
-            }
+            request
+          )
+        );
+
+        // Send confirmation email to the admin who took the action
+        if (adminUser && adminUser.email) {
+          emailPromises.push(
+            sendApproverNotification(
+              adminUser.email,
+              req.user.username,
+              request.fullName,
+              status,
+              {
+                email: request.email,
+                purpose: request.purposeOfAccess,
+                whomToMeet: request.whomToMeet,
+                images: request.images
+              }
+            )
           );
         }
-      }
 
-      // Create message for both admin and HR to see
-      if (status === 'approved') {
-        await Message.createApprovalMessage({
-          userName: request.fullName,
-          userEmail: request.email,
-          approverName: req.user.username,
-          approverRole: 'admin',
-          requestId: request._id,
-          userId: request._id
+        // Send notification emails to all HR users in parallel
+        hrUsers.forEach(hrUser => {
+          if (hrUser.email) {
+            emailPromises.push(
+              sendApproverNotification(
+                hrUser.email,
+                req.user.username,
+                request.fullName,
+                status,
+                {
+                  email: request.email,
+                  purpose: request.purposeOfAccess,
+                  whomToMeet: request.whomToMeet,
+                  images: request.images
+                }
+              )
+            );
+          }
         });
-      } else {
-        await Message.createRejectionMessage({
-          userName: request.fullName,
-          userEmail: request.email,
-          approverName: req.user.username,
-          approverRole: 'admin',
-          requestId: request._id,
-          userId: request._id,
-          reason: rejectionReason
-        });
-      }
 
-      console.log('Email notifications and messages sent successfully');
-    } catch (emailError) {
-      console.error('Error sending notifications:', emailError);
-      // Don't fail the request update if email fails
-    }
+        // Execute all email operations in parallel
+        await Promise.allSettled(emailPromises);
+
+        // Create message for both admin and HR to see
+        if (status === 'approved') {
+          await Message.createApprovalMessage({
+            userName: request.fullName,
+            userEmail: request.email,
+            approverName: req.user.username,
+            approverRole: 'admin',
+            requestId: request._id,
+            userId: request._id
+          });
+        } else {
+          await Message.createRejectionMessage({
+            userName: request.fullName,
+            userEmail: request.email,
+            approverName: req.user.username,
+            approverRole: 'admin',
+            requestId: request._id,
+            userId: request._id,
+            reason: rejectionReason
+          });
+        }
+
+        console.log('Email notifications and messages processed successfully');
+      } catch (emailError) {
+        console.error('Error processing notifications:', emailError);
+        // Log error but don't affect the main response
+      }
+    });
 
     res.json({
       success: true,

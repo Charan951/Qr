@@ -291,6 +291,8 @@ const HRDashboard = () => {
     }
 
     setActionLoading(true);
+    setMessage({ type: 'info', text: `Processing ${actionType}...` });
+    
     try {
       const token = localStorage.getItem('hrToken');
       const payload = {
@@ -298,28 +300,55 @@ const HRDashboard = () => {
         ...(actionType === 'rejected' && { rejectionReason: rejectionReason.trim() })
       };
 
+      // Use a timeout to ensure the request doesn't hang
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await axios.patch(
         buildApiUrl(API_ENDPOINTS.HR_REQUESTS, selectedRequest._id),
         payload,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
         }
       );
+
+      clearTimeout(timeoutId);
 
       if (response.data.success) {
         setMessage({ 
           type: 'success', 
-          text: `Request ${actionType} successfully!` 
+          text: `Request ${actionType} successfully! Notifications are being sent in the background.` 
         });
         setActionDialogOpen(false);
-        fetchRequests(); // Refresh the data
+        
+        // Optimistically update the UI before refetching
+        setRequests(prevRequests => 
+          prevRequests.map(req => 
+            req._id === selectedRequest._id 
+              ? { ...req, status: actionType, approvedBy: 'You', approvedAt: new Date() }
+              : req
+          )
+        );
+        
+        // Fetch updated data in the background
+        setTimeout(() => {
+          fetchRequests();
+        }, 100);
       }
     } catch (error) {
       console.error('Error updating request:', error);
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to update request' 
-      });
+      if (error.name === 'AbortError') {
+        setMessage({ 
+          type: 'warning', 
+          text: `${actionType} request is taking longer than expected. Please check the status in a moment.` 
+        });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: error.response?.data?.message || 'Failed to update request' 
+        });
+      }
     } finally {
       setActionLoading(false);
     }

@@ -242,6 +242,9 @@ const AdminDashboard = () => {
   };
 
   const handleApproveReject = async (action) => {
+    // Add loading state for better UX
+    setMessage({ type: 'info', text: `Processing ${action}...` });
+    
     try {
       const token = localStorage.getItem('adminToken');
       const requestData = { status: action };
@@ -251,25 +254,55 @@ const AdminDashboard = () => {
         requestData.rejectionReason = reviewNotes.trim() || 'No specific reason provided';
       }
       
+      // Use a timeout to ensure the request doesn't hang
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       await axios.patch(
         buildApiUrl(API_ENDPOINTS.ADMIN_REQUESTS, selectedRequest._id),
         requestData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { 
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        }
       );
+      
+      clearTimeout(timeoutId);
 
       setMessage({
         type: 'success',
-        text: `Request ${action}d successfully!`
+        text: `Request ${action}d successfully! Notifications are being sent in the background.`
       });
 
       setReviewDialogOpen(false);
-      fetchRequests();
-      fetchStats();
+      
+      // Optimistically update the UI before refetching
+      setRequests(prevRequests => 
+        prevRequests.map(req => 
+          req._id === selectedRequest._id 
+            ? { ...req, status: action, approvedBy: 'You', approvedAt: new Date() }
+            : req
+        )
+      );
+      
+      // Fetch updated data in the background
+      setTimeout(() => {
+        fetchRequests();
+        fetchStats();
+      }, 100);
+      
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || `Failed to ${action} request`
-      });
+      if (error.name === 'AbortError') {
+        setMessage({
+          type: 'warning',
+          text: `${action} request is taking longer than expected. Please check the status in a moment.`
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: error.response?.data?.message || `Failed to ${action} request`
+        });
+      }
     }
   };
 

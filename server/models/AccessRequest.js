@@ -127,8 +127,11 @@ const accessRequestSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
+// Optimized indexes for better query performance
 accessRequestSchema.index({ email: 1, submittedDate: -1 });
 accessRequestSchema.index({ status: 1, submittedDate: -1 });
+accessRequestSchema.index({ status: 1, createdAt: -1 }); // For dashboard queries
+accessRequestSchema.index({ approvedBy: 1, approvedAt: -1 }); // For approval tracking
+accessRequestSchema.index({ _id: 1, status: 1 }); // For update operations
 
 module.exports = mongoose.model('AccessRequest', accessRequestSchema);
