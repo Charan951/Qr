@@ -246,9 +246,9 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('adminToken');
       const requestData = { status: action };
       
-      // Add rejection reason if rejecting
-      if (action === 'rejected' && reviewNotes) {
-        requestData.rejectionReason = reviewNotes;
+      // Add rejection reason if rejecting - always required by backend
+      if (action === 'rejected') {
+        requestData.rejectionReason = reviewNotes.trim() || 'No specific reason provided';
       }
       
       await axios.patch(
