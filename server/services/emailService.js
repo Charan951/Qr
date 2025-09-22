@@ -191,6 +191,100 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
   }
 };
 
+// Send notification to HR/Admin about actions taken by others
+const sendActionNotificationToStaff = async (recipientEmail, recipientName, userName, status, actionTakenBy, actionDate, requestDetails) => {
+  try {
+    const transporter = createTransporter();
+    
+    const subject = `Access Request ${status === 'approved' ? 'Approved' : 'Rejected'} - Notification`;
+    const statusText = status === 'approved' ? 'approved' : 'rejected';
+    const statusColor = status === 'approved' ? '#4CAF50' : '#f44336';
+    const actionIcon = status === 'approved' ? '✅' : '❌';
+    
+    // Add uploaded images section if images exist in requestDetails
+    let imagesHtml = '';
+    if (requestDetails && requestDetails.images && requestDetails.images.length > 0) {
+      console.log('Email Service - Processing images for staff notification');
+      imagesHtml = `
+        <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+          <h4 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">📷</span> Request Images (${requestDetails.images.length})
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">`;
+      
+      requestDetails.images.forEach((imageUrl, index) => {
+        const fullImageUrl = imageUrl;
+        imagesHtml += `
+          <div style="text-align: center; background-color: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <img src="${fullImageUrl}" alt="Request Image ${index + 1}" style="max-width: 100%; max-height: 200px; border-radius: 4px; object-fit: cover; display: block; margin: 0 auto;" />
+            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Image ${index + 1}</p>
+          </div>`;
+      });
+      
+      imagesHtml += `
+          </div>
+          <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; text-align: center;">
+            Images submitted with this request
+          </p>
+        </div>`;
+    }
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #333; text-align: center;">${actionIcon} Access Request ${status === 'approved' ? 'Approved' : 'Rejected'}</h2>
+          
+          <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #333;">Dear ${recipientName},</p>
+            
+            <p style="font-size: 16px; color: #333;">
+              An access request for <strong>${userName}</strong> has been <strong style="color: ${statusColor};">${statusText}</strong> 
+              by <strong>${actionTakenBy}</strong>.
+            </p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h4 style="margin: 0 0 10px 0; color: #333;">Request Details:</h4>
+              <p style="margin: 5px 0; color: #666;"><strong>User:</strong> ${userName}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Email:</strong> ${requestDetails?.email || 'N/A'}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Purpose:</strong> ${requestDetails?.purpose || 'N/A'}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Whom to Meet:</strong> ${requestDetails?.whomToMeet || 'N/A'}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> <span style="color: ${statusColor};">${status.toUpperCase()}</span></p>
+              <p style="margin: 5px 0; color: #666;"><strong>Action Taken By:</strong> ${actionTakenBy}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Action Date:</strong> ${formatDateTimeIST(actionDate)}</p>
+            </div>
+            
+            ${imagesHtml}
+            
+            <p style="font-size: 14px; color: #666;">
+              The user has been notified about this decision via email.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <p style="font-size: 12px; color: #999;">
+              This is an automated notification from the Access Request Management System.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipientEmail,
+      subject: subject,
+      html: htmlContent,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Staff action notification sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending staff action notification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Send new access request notification to HR and Admin with approve/reject options
 const sendNewAccessRequestNotification = async (recipientEmail, recipientName, recipientRole, requestData) => {
   try {
@@ -414,5 +508,6 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
 module.exports = {
   sendAccessRequestNotification,
   sendApproverNotification,
+  sendActionNotificationToStaff,
   sendNewAccessRequestNotification,
 };
