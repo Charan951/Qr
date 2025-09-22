@@ -106,17 +106,19 @@ router.get('/email-action', async (req, res) => {
       // Send notification emails to all HR users
       const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
       for (const hrUser of hrUsers) {
-        if (hrUser.email) {
+        if (hrUser.email && hrUser.email !== email) { // Don't send to the person who took action
           await sendApproverNotification(
             hrUser.email,
-            `Email Action (${email})`,
+            hrUser.username || 'HR User',
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
               whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images
+              images: accessRequest.images,
+              actionTakenBy: `${role.toUpperCase()} (${email})`,
+              actionDate: new Date()
             }
           );
         }
@@ -125,17 +127,19 @@ router.get('/email-action', async (req, res) => {
       // Send notification emails to all Admin users
       const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
       for (const adminUser of adminUsers) {
-        if (adminUser.email) {
+        if (adminUser.email && adminUser.email !== email) { // Don't send to the person who took action
           await sendApproverNotification(
             adminUser.email,
-            `Email Action (${email})`,
+            adminUser.username || 'Admin User',
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
               whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images
+              images: accessRequest.images,
+              actionTakenBy: `${role.toUpperCase()} (${email})`,
+              actionDate: new Date()
             }
           );
         }
