@@ -1,9 +1,16 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve logo from client public directory
+app.use('/logo.png', express.static(path.join(__dirname, '../client/public/logo.png')));
 
 // Middleware
 app.use(cors({

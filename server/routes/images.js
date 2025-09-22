@@ -1,28 +1,34 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { s3, S3_BUCKET } = require('../config/aws');
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const AccessRequest = require('../models/AccessRequest');
 
 const router = express.Router();
 
-// Configure multer for S3 upload using direct AWS SDK approach
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    console.log('File filter - MIME type:', file.mimetype);
     if (file.mimetype.startsWith('image/')) {
-      console.log('File accepted');
       cb(null, true);
     } else {
-      console.log('File rejected - not an image');
       cb(new Error('Only image files are allowed!'), false);
     }
   }
 });
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Upload image endpoint - disable body parsing for multipart
 router.post('/upload', (req, res, next) => {
@@ -43,24 +49,39 @@ router.post('/upload', (req, res, next) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    // Generate S3 key
+    // Generate filename
     const timestamp = Date.now();
     const filename = `images/${timestamp}-${req.file.originalname}`;
-    console.log('Generating S3 key:', filename);
+    console.log('Generating filename:', filename);
 
-    // Upload to S3 using direct AWS SDK
-    const uploadParams = {
-      Bucket: S3_BUCKET,
-      Key: filename,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype
-      // Removed ACL: 'public-read' as the bucket doesn't allow ACLs
-    };
+    let imageUrl;
+    let isLocalStorage = false;
 
-    console.log('Uploading to S3...');
-    const uploadResult = await s3.send(new PutObjectCommand(uploadParams));
-    const imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
-    console.log('File uploaded to S3:', imageUrl);
+    try {
+      // Try to upload to S3 first
+      const uploadParams = {
+        Bucket: S3_BUCKET,
+        Key: filename,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype
+      };
+
+      console.log('Attempting S3 upload...');
+      const uploadResult = await s3.send(new PutObjectCommand(uploadParams));
+      imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
+      console.log('File uploaded to S3:', imageUrl);
+    } catch (s3Error) {
+      console.log('S3 upload failed, falling back to local storage:', s3Error.message);
+      
+      // Fallback to local storage
+      const localFilename = `${timestamp}-${req.file.originalname}`;
+      const localPath = path.join(uploadsDir, localFilename);
+      
+      fs.writeFileSync(localPath, req.file.buffer);
+      imageUrl = `/uploads/${localFilename}`;
+      isLocalStorage = true;
+      console.log('File saved locally:', imageUrl);
+    }
     const { requestId } = req.body;
 
     // Update access request with image URL if requestId is provided
