@@ -106,19 +106,17 @@ router.get('/email-action', async (req, res) => {
       // Send notification emails to all HR users
       const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
       for (const hrUser of hrUsers) {
-        if (hrUser.email && hrUser.email !== email) { // Don't send to the person who took action
+        if (hrUser.email) {
           await sendApproverNotification(
             hrUser.email,
-            hrUser.username || 'HR User',
+            `Email Action (${email})`,
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
               whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images,
-              actionTakenBy: `${role.toUpperCase()} (${email})`,
-              actionDate: new Date()
+              images: accessRequest.images
             }
           );
         }
@@ -127,19 +125,17 @@ router.get('/email-action', async (req, res) => {
       // Send notification emails to all Admin users
       const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
       for (const adminUser of adminUsers) {
-        if (adminUser.email && adminUser.email !== email) { // Don't send to the person who took action
+        if (adminUser.email) {
           await sendApproverNotification(
             adminUser.email,
-            adminUser.username || 'Admin User',
+            `Email Action (${email})`,
             accessRequest.fullName,
             action === 'approve' ? 'approved' : 'rejected',
             {
               email: accessRequest.email,
               purpose: accessRequest.purposeOfAccess,
               whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images,
-              actionTakenBy: `${role.toUpperCase()} (${email})`,
-              actionDate: new Date()
+              images: accessRequest.images
             }
           );
         }
