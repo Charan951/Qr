@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
+import logo from '../assets/logo.png';
 
 // Animation variants
 const cardVariants = {
@@ -223,7 +224,7 @@ const AdminLogin = () => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <motion.img 
-                        src={process.env.PUBLIC_URL + "/logo.png"}
+                        src={logo}
                         alt="Speshway Solutions Logo" 
                         style={{ width: '32px', height: '32px', marginRight: '8px' }}
                         variants={iconVariants}

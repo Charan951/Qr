@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import logo from '../assets/logo.png';
 
 // Animation variants
 const headerVariants = {
@@ -138,7 +139,7 @@ const Layout = ({ children }) => {
             
             <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
               <motion.img 
-                  src={process.env.PUBLIC_URL + "/logo.png"}
+                  src={logo}
                   alt="Speshway Solutions Logo" 
                   style={{ 
                     width: '32px', 
