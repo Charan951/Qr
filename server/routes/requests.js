@@ -214,7 +214,7 @@ router.get('/email-action', async (req, res) => {
       console.log('Looking up access request:', requestId);
       accessRequest = await AccessRequest.findById(requestId);
     } catch (dbError) {
-      console.error('Database error finding access request:', error);
+      console.error('Database error finding access request:', dbError);
       res.status(500);
       return res.send(`
         <!DOCTYPE html>
