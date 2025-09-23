@@ -265,7 +265,7 @@ const HRLogin = () => {
                       fontSize: { xs: '0.75rem', sm: '0.875rem' }
                     }}
                   >
-                    Speshway Solutions Private Limited
+                      SPESHWAY SOLUTIONS PRIVATE LIMITED
                   </Typography>
                 </motion.div>
                 <motion.div
