@@ -2,7 +2,7 @@ const express = require('express');
 const AccessRequest = require('../models/AccessRequest');
 const User = require('../models/User');
 const Message = require('../models/Message');
-const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotificationToStaff } = require('../services/emailService');
+const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotificationToStaff, sendNewAccessRequestNotification } = require('../services/emailService');
 const router = express.Router();
 
 // @route   GET /api/requests/email-action
@@ -23,8 +23,6 @@ router.get('/email-action', async (req, res) => {
       timestamp: new Date().toISOString(),
       ip: req.ip || req.connection.remoteAddress
     });
-
-    const { token } = req.query;
     
     if (!token) {
       console.log('Email action failed: No token provided');
@@ -370,10 +368,6 @@ router.get('/email-action', async (req, res) => {
 
     // Send email notifications and create messages (same as HR/Admin dashboard approval)
     try {
-      const { sendAccessRequestNotification, sendActionNotificationToStaff } = require('../services/emailService');
-      const User = require('../models/User');
-      const Message = require('../models/Message');
-
       console.log('Starting email notification process...');
 
       // Send email to the user who made the request
@@ -838,9 +832,6 @@ router.post('/', async (req, res) => {
 
     // Send email notifications to HR and Admin users immediately after request creation
     try {
-      const { sendNewAccessRequestNotification } = require('../services/emailService');
-      const User = require('../models/User');
-
       // Get all active HR users
       const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
       
