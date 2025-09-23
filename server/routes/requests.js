@@ -1,6 +1,8 @@
 const express = require('express');
 const AccessRequest = require('../models/AccessRequest');
-const { formatDateTimeIST } = require('../services/emailService');
+const User = require('../models/User');
+const Message = require('../models/Message');
+const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotificationToStaff } = require('../services/emailService');
 const router = express.Router();
 
 // @route   GET /api/requests/email-action
