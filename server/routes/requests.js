@@ -6,15 +6,17 @@ const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotification
 const router = express.Router();
 
 // @route   GET /api/requests/email-action
-// @desc    Handle email-based approve/reject actions
-// @access  Public (secured by token)
+// @desc    Handle email action (approve/reject) from email links
+// @access  Public (token-based authentication)
 router.get('/email-action', async (req, res) => {
   try {
-    // Set proper headers for HTML response
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    // Set response headers early to prevent CORS issues
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Content-Type', 'text/html; charset=utf-8');
+    
+    const { token } = req.query;
     
     console.log('Email action endpoint accessed:', {
       query: req.query,
@@ -683,11 +685,13 @@ router.get('/email-action', async (req, res) => {
     `);
 
   } catch (error) {
-    console.error('Error in email action endpoint:', {
+    console.error('Email action error:', {
       error: error.message,
       stack: error.stack,
       query: req.query,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      userAgent: req.get('User-Agent'),
+      referer: req.get('Referer')
     });
     
     res.status(500).type('html').send(`

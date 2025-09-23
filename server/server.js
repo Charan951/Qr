@@ -26,17 +26,33 @@ app.use('/logo.png', express.static(path.join(__dirname, '../client/public/logo.
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000', 
-    'http://localhost:3001',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'https://qr-oj5t.vercel.app',
-    'https://qr-oj5t-git-master-charan951s-projects.vercel.app',
-    'https://qr-oj5t-charan951s-projects.vercel.app',
-    process.env.FRONTEND_URL,
-    process.env.CLIENT_URL
-  ].filter(Boolean),
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000', 
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'https://qr-oj5t.vercel.app',
+      'https://qr-oj5t-git-master-charan951s-projects.vercel.app',
+      'https://qr-oj5t-charan951s-projects.vercel.app',
+      process.env.FRONTEND_URL,
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // In production, allow email action requests from any origin
+      if (process.env.NODE_ENV === 'production') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -85,6 +101,38 @@ const connectWithRetry = () => {
 };
 
 connectWithRetry();
+
+// Add production-specific middleware
+if (process.env.NODE_ENV === 'production') {
+  // Trust proxy for production deployment
+  app.set('trust proxy', 1);
+  
+  // Add security headers for production
+  app.use((req, res, next) => {
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'DENY');
+    res.header('X-XSS-Protection', '1; mode=block');
+    next();
+  });
+  
+  // Enhanced logging for production
+  app.use((req, res, next) => {
+    if (req.path.includes('/email-action')) {
+      console.log('Production email-action request:', {
+        method: req.method,
+        path: req.path,
+        query: req.query,
+        headers: {
+          'user-agent': req.get('User-Agent'),
+          'referer': req.get('Referer'),
+          'origin': req.get('Origin')
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+    next();
+  });
+}
 
 // Routes
 app.use('/api/requests', require('./routes/requests'));
