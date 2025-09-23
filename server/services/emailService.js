@@ -329,8 +329,8 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
       timestamp: Date.now()
     })).toString('base64');
     
-    const approveUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/email-action?token=${approveToken}`;
-    const rejectUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/email-action?token=${rejectToken}`;
+    const approveUrl = `${process.env.BASE_URL || 'https://qr-nk38.onrender.com'}/api/requests/email-action?token=${approveToken}`;
+    const rejectUrl = `${process.env.BASE_URL || 'https://qr-nk38.onrender.com'}/api/requests/email-action?token=${rejectToken}`;
     
     // Log generated URLs for debugging
     console.log('EmailService - Generated approve URL:', approveUrl);
