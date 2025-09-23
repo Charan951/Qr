@@ -117,6 +117,10 @@ app.get('/api/health', (req, res) => {
 
 // Catch-all handler for undefined API routes (must be last)
 app.use('/api/*', (req, res) => {
+  // Skip if response has already been sent (for HTML responses from email-action)
+  if (res.headersSent) {
+    return;
+  }
   res.status(404).json({ error: 'API endpoint not found' });
 });
 

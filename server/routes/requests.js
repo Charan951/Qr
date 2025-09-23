@@ -287,7 +287,7 @@ router.get('/email-action', async (req, res) => {
         currentStatus: accessRequest.status,
         processedBy: accessRequest.approvedBy
       });
-      res.status(200);
+      res.status(200).type('html');
       return res.send(`
         <!DOCTYPE html>
         <html lang="en">
@@ -347,7 +347,7 @@ router.get('/email-action', async (req, res) => {
         requestId,
         updateData
       });
-      return res.status(500).send(`
+      return res.status(500).type('html').send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
@@ -482,7 +482,7 @@ router.get('/email-action', async (req, res) => {
       timestamp: new Date().toISOString()
     });
     
-    res.send(`
+    res.status(200).type('html').send(`
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -690,7 +690,7 @@ router.get('/email-action', async (req, res) => {
       timestamp: new Date().toISOString()
     });
     
-    res.status(500).send(`
+    res.status(500).type('html').send(`
       <!DOCTYPE html>
       <html lang="en">
         <head>
