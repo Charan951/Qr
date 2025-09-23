@@ -308,6 +308,10 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
     const subject = `New Access Request - Action Required`;
     const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
     
+    // Log BASE_URL for debugging
+    console.log('EmailService - Using BASE_URL:', baseUrl);
+    console.log('EmailService - Environment BASE_URL:', process.env.BASE_URL);
+    
     // Generate secure tokens for approve/reject actions
     const approveToken = Buffer.from(JSON.stringify({
       requestId: requestData._id,
@@ -325,8 +329,12 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
       timestamp: Date.now()
     })).toString('base64');
     
-    const approveUrl = `${baseUrl}/api/requests/email-action?token=${approveToken}`;
-    const rejectUrl = `${baseUrl}/api/requests/email-action?token=${rejectToken}`;
+    const approveUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/email-action?token=${approveToken}`;
+    const rejectUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000'}/email-action?token=${rejectToken}`;
+    
+    // Log generated URLs for debugging
+    console.log('EmailService - Generated approve URL:', approveUrl);
+    console.log('EmailService - Generated reject URL:', rejectUrl);
     
     // Build comprehensive request details section
     let requestDetailsHtml = `

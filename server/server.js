@@ -4,6 +4,18 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Log environment variables for debugging (without sensitive data)
+console.log('Environment Configuration:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('BASE_URL:', process.env.BASE_URL);
+console.log('CLIENT_URL:', process.env.CLIENT_URL);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Not set');
+console.log('SMTP_HOST:', process.env.SMTP_HOST);
+console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set');
+
 const app = express();
 
 // Serve static files from uploads directory
