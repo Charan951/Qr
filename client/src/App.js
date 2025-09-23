@@ -12,6 +12,7 @@ import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import HRLogin from './components/HRLogin';
 import HRDashboard from './components/HRDashboard';
+import EmailAction from './components/EmailAction';
 
 import Layout from './components/Layout';
 
@@ -360,6 +361,22 @@ const AnimatedRoutes = () => {
               transition={pageTransition}
             >
               <AccessRequestForm />
+            </motion.div>
+          } 
+        />
+        
+        {/* Email Action Route */}
+        <Route 
+          path="/email-action" 
+          element={
+            <motion.div
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <EmailAction />
             </motion.div>
           } 
         />
