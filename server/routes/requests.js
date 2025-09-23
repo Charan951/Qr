@@ -222,7 +222,7 @@ router.get('/email-action', async (req, res) => {
       console.log('Request already processed:', {
         requestId,
         currentStatus: accessRequest.status,
-        processedBy: accessRequest.approvedBy || accessRequest.rejectedBy
+        processedBy: accessRequest.approvedBy
       });
       return res.status(400).send(`
         <!DOCTYPE html>
@@ -237,8 +237,8 @@ router.get('/email-action', async (req, res) => {
               <h2 style="color: #ff9800; margin-bottom: 20px;">Already Processed</h2>
               <p style="color: #666; font-size: 16px;">This request has already been <strong>${accessRequest.status}</strong>.</p>
               <div style="margin-top: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
-                <p style="color: #333; margin: 5px 0;"><strong>Processed by:</strong> ${accessRequest.approvedBy || accessRequest.rejectedBy || 'Unknown'}</p>
-                <p style="color: #333; margin: 5px 0;"><strong>Date:</strong> ${formatDateTimeIST(accessRequest.approvedDate || accessRequest.rejectedDate) || 'Unknown'}</p>
+                <p style="color: #333; margin: 5px 0;"><strong>Processed by:</strong> ${accessRequest.approvedBy || 'Unknown'}</p>
+                <p style="color: #333; margin: 5px 0;"><strong>Date:</strong> ${formatDateTimeIST(accessRequest.approvedAt) || 'Unknown'}</p>
               </div>
             </div>
           </body>
@@ -256,8 +256,8 @@ router.get('/email-action', async (req, res) => {
 
     const updateData = {
       status: action === 'approve' ? 'approved' : 'rejected',
-      [`${action}dBy`]: `${role.toUpperCase()} (${email})`,
-      [`${action}dDate`]: new Date()
+      approvedBy: `${role.toUpperCase()} (${email})`,
+      approvedAt: new Date()
     };
 
     try {
@@ -265,7 +265,7 @@ router.get('/email-action', async (req, res) => {
       console.log('Access request updated successfully:', {
         requestId,
         newStatus: updateData.status,
-        processedBy: updateData[`${action}dBy`]
+        processedBy: updateData.approvedBy
       });
     } catch (updateError) {
       console.error('Error updating access request:', {
