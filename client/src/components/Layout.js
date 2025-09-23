@@ -164,7 +164,7 @@ const Layout = ({ children }) => {
                     display: { xs: 'none', sm: 'block' }
                   }}
                 >
-                  Speshway Solutions Private Limited
+                  SPESHWAY SOLUTIONS PRIVATE LIMITED
                 </Typography>
                 <Typography 
                   variant="h6" 
@@ -337,7 +337,7 @@ const Layout = ({ children }) => {
             fontSize: { xs: '0.75rem', sm: '0.875rem' }
           }}
         >
-          © 2024 Access Request Management System. All rights reserved.
+          © 2025 Access Request Management System. All rights reserved.
         </Typography>
       </Box>
       </motion.div>
