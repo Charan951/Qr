@@ -264,7 +264,7 @@ const AdminLogin = () => {
                         fontSize: { xs: '0.75rem', sm: '0.875rem' }
                       }}
                     >
-                      Speshway Solutions Private Limited
+                      SPESHWAY SOLUTIONS PRIVATE LIMITED
                     </Typography>
                     <Typography 
                       variant="body2" 
@@ -275,7 +275,7 @@ const AdminLogin = () => {
                         fontSize: { xs: '0.75rem', sm: '0.875rem' }
                       }}
                     >
-                      Access the administrative dashboard
+                     
                     </Typography>
                   </motion.div>
                 </Box>
