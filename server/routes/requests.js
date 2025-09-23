@@ -8,10 +8,11 @@ const router = express.Router();
 // @access  Public (secured by token)
 router.get('/email-action', async (req, res) => {
   try {
-    // Add CORS headers for production
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    // Set proper headers for HTML response
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
     console.log('Email action endpoint accessed:', {
       query: req.query,
@@ -23,19 +24,27 @@ router.get('/email-action', async (req, res) => {
     
     if (!token) {
       console.log('Email action failed: No token provided');
-      return res.status(400).send(`
+      res.status(400);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Invalid Request - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #f44336; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Request</h2>
-              <p style="color: #666; font-size: 16px;">No token provided in the request.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or contact your administrator.</p>
+          <body>
+            <div class="container">
+              <h2>Invalid Request</h2>
+              <p>No token provided in the request.</p>
+              <div class="footer">Please use the original email link or contact your administrator.</div>
             </div>
           </body>
         </html>
@@ -61,19 +70,27 @@ router.get('/email-action', async (req, res) => {
         token: token.substring(0, 50) + '...',
         tokenLength: token.length
       });
-      return res.status(400).send(`
+      res.status(400);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Invalid Token - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #f44336; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Token</h2>
-              <p style="color: #666; font-size: 16px;">The token is malformed or corrupted.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or request a new approval email.</p>
+          <body>
+            <div class="container">
+              <h2>Invalid Token</h2>
+              <p>The token is malformed or corrupted.</p>
+              <div class="footer">Please use the original email link or request a new approval email.</div>
             </div>
           </body>
         </html>
@@ -84,26 +101,41 @@ router.get('/email-action', async (req, res) => {
     const { requestId, action, role, email, timestamp } = tokenData;
     
     if (!requestId || !action || !role || !email || !timestamp) {
-      console.error('Invalid token data structure:', {
-        hasRequestId: !!requestId,
-        hasAction: !!action,
-        hasRole: !!role,
-        hasEmail: !!email,
-        hasTimestamp: !!timestamp
+      console.log('Token validation failed:', {
+        requestId,
+        action,
+        role,
+        email,
+        timestamp,
+        missingFields: {
+          requestId: !requestId,
+          action: !action,
+          role: !role,
+          email: !email,
+          timestamp: !timestamp
+        }
       });
-      return res.status(400).send(`
+      res.status(400);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Invalid Token Data - Access Management System</title>
+            <title>Invalid Token - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #f44336; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Token Data</h2>
-              <p style="color: #666; font-size: 16px;">The token is missing required information.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please request a new approval email from your administrator.</p>
+          <body>
+            <div class="container">
+              <h2>Invalid Token</h2>
+              <p>The token is missing required information or is corrupted.</p>
+              <div class="footer">Please use the original email link or request a new approval email.</div>
             </div>
           </body>
         </html>
@@ -112,20 +144,28 @@ router.get('/email-action', async (req, res) => {
 
     // Validate action type
     if (!['approve', 'reject'].includes(action)) {
-      console.error('Invalid action in token:', action);
-      return res.status(400).send(`
+      console.log('Invalid action type:', { action, validActions: ['approve', 'reject'] });
+      res.status(400);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Invalid Action - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #f44336; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Invalid Action</h2>
-              <p style="color: #666; font-size: 16px;">The requested action is not valid.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the original email link or contact your administrator.</p>
+          <body>
+            <div class="container">
+              <h2>Invalid Action</h2>
+              <p>The requested action is not valid.</p>
+              <div class="footer">Please use the original email link or request a new approval email.</div>
             </div>
           </body>
         </html>
@@ -137,23 +177,31 @@ router.get('/email-action', async (req, res) => {
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
     if (tokenAge > maxAge) {
       console.log('Token expired:', {
-        tokenAge: Math.round(tokenAge / (1000 * 60 * 60)) + ' hours',
-        maxAge: '24 hours',
-        requestId
+        tokenTimestamp: new Date(timestamp),
+        currentTime: new Date(),
+        ageInHours: (Date.now() - timestamp) / (1000 * 60 * 60)
       });
-      return res.status(400).send(`
+      res.status(400);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Token Expired - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #ff9800; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Token Expired</h2>
-              <p style="color: #666; font-size: 16px;">This approval/rejection link has expired.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please use the dashboard to take action or request a new approval email.</p>
+          <body>
+            <div class="container">
+              <h2>⏰ Token Expired</h2>
+              <p>This approval link has expired (valid for 24 hours only).</p>
+              <div class="footer">Please request a new approval email from your administrator.</div>
             </div>
           </body>
         </html>
@@ -166,23 +214,28 @@ router.get('/email-action', async (req, res) => {
       console.log('Looking up access request:', requestId);
       accessRequest = await AccessRequest.findById(requestId);
     } catch (dbError) {
-      console.error('Database error while finding access request:', {
-        error: dbError.message,
-        requestId
-      });
-      return res.status(500).send(`
+      console.error('Database error finding access request:', error);
+      res.status(500);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Database Error - Access Management System</title>
+            <title>Server Error - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #f44336; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Database Error</h2>
-              <p style="color: #666; font-size: 16px;">Unable to process the request due to a database error.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">Please try again later or contact your administrator.</p>
+          <body>
+            <div class="container">
+              <h2>Server Error</h2>
+              <p>Unable to process your request at this time.</p>
+              <div class="footer">Please try again later or contact your administrator.</div>
             </div>
           </body>
         </html>
@@ -190,20 +243,28 @@ router.get('/email-action', async (req, res) => {
     }
 
     if (!accessRequest) {
-      console.log('Access request not found:', requestId);
-      return res.status(404).send(`
+      console.log('Access request not found:', { requestId });
+      res.status(404);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Request Not Found - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #ff9800; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .footer { margin-top: 30px; font-size: 14px; color: #999; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #f44336; margin-bottom: 20px;">Request Not Found</h2>
-              <p style="color: #666; font-size: 16px;">The access request could not be found.</p>
-              <p style="color: #999; font-size: 14px; margin-top: 30px;">The request may have been deleted or the ID is incorrect.</p>
+          <body>
+            <div class="container">
+              <h2>Request Not Found</h2>
+              <p>The access request could not be found or may have been deleted.</p>
+              <div class="footer">Please contact your administrator for assistance.</div>
             </div>
           </body>
         </html>
@@ -224,21 +285,32 @@ router.get('/email-action', async (req, res) => {
         currentStatus: accessRequest.status,
         processedBy: accessRequest.approvedBy
       });
-      return res.status(400).send(`
+      res.status(200);
+      return res.send(`
         <!DOCTYPE html>
         <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Already Processed - Access Management System</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; margin: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h2 { color: #ff9800; margin-bottom: 20px; }
+              p { color: #666; font-size: 16px; }
+              .info-box { margin-top: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 5px; }
+              .info-box p { color: #333; margin: 5px 0; }
+              .status-approved { color: #4CAF50; font-weight: bold; }
+              .status-rejected { color: #f44336; font-weight: bold; }
+            </style>
           </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #ff9800; margin-bottom: 20px;">Already Processed</h2>
-              <p style="color: #666; font-size: 16px;">This request has already been <strong>${accessRequest.status}</strong>.</p>
-              <div style="margin-top: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
-                <p style="color: #333; margin: 5px 0;"><strong>Processed by:</strong> ${accessRequest.approvedBy || 'Unknown'}</p>
-                <p style="color: #333; margin: 5px 0;"><strong>Date:</strong> ${formatDateTimeIST(accessRequest.approvedAt) || 'Unknown'}</p>
+          <body>
+            <div class="container">
+              <h2>✓ Already Processed</h2>
+              <p>This request has already been <span class="status-${accessRequest.status}">${accessRequest.status.toUpperCase()}</span>.</p>
+              <div class="info-box">
+                <p><strong>Processed by:</strong> ${accessRequest.approvedBy || 'Unknown'}</p>
+                <p><strong>Date:</strong> ${formatDateTimeIST(accessRequest.approvedAt) || 'Unknown'}</p>
               </div>
             </div>
           </body>
