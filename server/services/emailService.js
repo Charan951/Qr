@@ -17,21 +17,41 @@ const formatDateTimeIST = (date) => {
 
 // Create transporter using environment variables
 const createTransporter = () => {
+  // Log environment variables for debugging (without exposing sensitive data)
   console.log('Creating email transporter with config:', {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
     secure: process.env.SMTP_SECURE,
     user: process.env.SMTP_USER ? '***' : 'NOT_SET',
-    pass: process.env.SMTP_PASS ? '***' : 'NOT_SET'
+    pass: process.env.SMTP_PASS ? '***' : 'NOT_SET',
+    emailUser: process.env.EMAIL_USER ? '***' : 'NOT_SET',
+    emailPass: process.env.EMAIL_PASS ? '***' : 'NOT_SET',
+    nodeEnv: process.env.NODE_ENV
   });
 
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  // Use EMAIL_USER and EMAIL_PASS as fallback if SMTP_USER and SMTP_PASS are not set
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  
+  // Default SMTP configuration for production
+  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+
+  console.log('Final SMTP config:', {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
+    hasAuth: !!(smtpUser && smtpPass)
+  });
+
+  const transporterConfig = {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: smtpUser,
+      pass: smtpPass,
     },
     tls: {
       rejectUnauthorized: false,
@@ -46,19 +66,82 @@ const createTransporter = () => {
     rateLimit: 10, // max 10 messages per second
     debug: process.env.NODE_ENV === 'production', // Enable debug in production
     logger: process.env.NODE_ENV === 'production' // Enable logging in production
-  });
+  };
+
+  // Additional production-specific configurations
+  if (process.env.NODE_ENV === 'production') {
+    transporterConfig.tls = {
+      ...transporterConfig.tls,
+      minVersion: 'TLSv1.2',
+      maxVersion: 'TLSv1.3',
+      secureProtocol: 'TLSv1_2_method'
+    };
+  }
+
+  return nodemailer.createTransporter(transporterConfig);
+};
+
+// Validate email configuration
+const validateEmailConfig = () => {
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  const fromEmail = process.env.EMAIL_USER;
+  
+  const issues = [];
+  
+  if (!smtpUser) {
+    issues.push('SMTP_USER or EMAIL_USER not set');
+  }
+  
+  if (!smtpPass) {
+    issues.push('SMTP_PASS or EMAIL_PASS not set');
+  }
+  
+  if (!fromEmail) {
+    issues.push('EMAIL_USER not set (required for FROM address)');
+  }
+  
+  if (issues.length > 0) {
+    console.error('Email configuration issues:', issues);
+    return { valid: false, issues };
+  }
+  
+  console.log('Email configuration validated successfully');
+  return { valid: true, issues: [] };
 };
 
 // Retry function for email sending
 const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
+  // Validate configuration before attempting to send
+  const configValidation = validateEmailConfig();
+  if (!configValidation.valid) {
+    throw new Error(`Email configuration invalid: ${configValidation.issues.join(', ')}`);
+  }
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Email attempt ${attempt}/${maxRetries} to: ${mailOptions.to}`);
+      console.log(`Email subject: ${mailOptions.subject}`);
+      console.log(`Email from: ${mailOptions.from}`);
+      
+      // Verify transporter connection before sending
+      if (attempt === 1) {
+        console.log('Verifying SMTP connection...');
+        await transporter.verify();
+        console.log('SMTP connection verified successfully');
+      }
+      
       const result = await transporter.sendMail(mailOptions);
       console.log(`Email sent successfully on attempt ${attempt}:`, result.messageId);
       return result;
     } catch (error) {
-      console.error(`Email attempt ${attempt}/${maxRetries} failed:`, error.message);
+      console.error(`Email attempt ${attempt}/${maxRetries} failed:`, {
+        error: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode
+      });
       
       if (attempt === maxRetries) {
         throw error;
@@ -666,6 +749,42 @@ const sendHRApprovalSuccessNotification = async (recipientEmail, recipientName, 
   }
 };
 
+// Email health check function
+const checkEmailHealth = async () => {
+  try {
+    console.log('Performing email health check...');
+    
+    // Validate configuration
+    const configValidation = validateEmailConfig();
+    if (!configValidation.valid) {
+      return {
+        status: 'error',
+        message: 'Email configuration invalid',
+        issues: configValidation.issues
+      };
+    }
+    
+    // Test SMTP connection
+    const transporter = createTransporter();
+    await transporter.verify();
+    
+    console.log('Email health check passed');
+    return {
+      status: 'healthy',
+      message: 'Email service is working correctly',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Email health check failed:', error);
+    return {
+      status: 'error',
+      message: 'Email service is not working',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
 module.exports = {
   sendAccessRequestNotification,
   sendApproverNotification,
@@ -674,4 +793,6 @@ module.exports = {
   sendNewRequestNotification: sendNewAccessRequestNotification, // Alias for backward compatibility
   sendHRApprovalSuccessNotification,
   formatDateTimeIST,
+  validateEmailConfig,
+  checkEmailHealth,
 };

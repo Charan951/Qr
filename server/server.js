@@ -153,6 +153,25 @@ app.get('/api/health', (req, res) => {
   res.status(200).json(healthStatus);
 });
 
+// Email health check endpoint
+app.get('/api/health/email', async (req, res) => {
+  try {
+    const { checkEmailHealth } = require('./services/emailService');
+    const emailHealth = await checkEmailHealth();
+    
+    const statusCode = emailHealth.status === 'healthy' ? 200 : 500;
+    res.status(statusCode).json(emailHealth);
+  } catch (error) {
+    console.error('Email health check endpoint error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to check email health',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Backend API only - frontend is deployed separately on Vercel
 
 // Catch-all handler for undefined API routes (must be last)
