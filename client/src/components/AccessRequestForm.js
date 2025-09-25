@@ -109,15 +109,9 @@ const AccessRequestForm = () => {
         const requestId = result.requestId || result.data.id;
         setSubmittedRequestId(requestId);
         
-        // Upload captured images if any exist, but don't let it block the success state
+        // Upload captured images if any exist
         if (capturedImages.length > 0) {
-          try {
-            await uploadCapturedImages(requestId);
-            console.log('Images uploaded successfully');
-          } catch (imageError) {
-            console.error('Image upload failed, but form submission was successful:', imageError);
-            // Continue to show success even if image upload fails
-          }
+          await uploadCapturedImages(requestId);
         }
         
         setIsSubmitting(false);
@@ -171,17 +165,13 @@ const AccessRequestForm = () => {
                      localStorage.getItem('hrToken') || 
                      localStorage.getItem('token');
 
-        const response = await fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
+        await fetch(getApiUrl('/api/images/upload'), {
           method: 'POST',
           headers: token ? {
             'Authorization': `Bearer ${token}`
           } : {},
           body: formData
         });
-        
-        if (!response.ok) {
-          throw new Error(`Image upload failed: ${response.status}`);
-        }
       } catch (error) {
         console.error('Error uploading image:', error);
       }

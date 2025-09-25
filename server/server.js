@@ -4,11 +4,6 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-
-
-// Log environment variables for debugging (without sensitive data)
-console.log('Environment Configuration:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 console.log('BASE_URL:', process.env.BASE_URL);
 console.log('CLIENT_URL:', process.env.CLIENT_URL);
