@@ -17,6 +17,14 @@ const formatDateTimeIST = (date) => {
 
 // Create transporter using environment variables
 const createTransporter = () => {
+  console.log('Creating email transporter with config:', {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE,
+    user: process.env.SMTP_USER ? '***' : 'NOT_SET',
+    pass: process.env.SMTP_PASS ? '***' : 'NOT_SET'
+  });
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT),
@@ -27,7 +35,14 @@ const createTransporter = () => {
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 60000, // 60 seconds
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateLimit: 14 // max 14 messages per second
   });
 };
 
@@ -630,6 +645,7 @@ module.exports = {
   sendApproverNotification,
   sendActionNotificationToStaff,
   sendNewAccessRequestNotification,
+  sendNewRequestNotification: sendNewAccessRequestNotification, // Alias for backward compatibility
   sendHRApprovalSuccessNotification,
   formatDateTimeIST,
 };
