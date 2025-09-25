@@ -121,10 +121,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
   };
 
   const uploadImage = async () => {
-    console.log('=== UPLOAD IMAGE CALLED ===');
-    console.log('capturedImage exists:', !!capturedImage);
-    console.log('requestId:', requestId);
-    
     if (!capturedImage) return;
 
     setIsUploading(true);
@@ -133,9 +129,7 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
     try {
       // If we have a requestId, upload immediately
       if (requestId) {
-        console.log('Uploading with requestId:', requestId);
         const file = dataURLtoFile(capturedImage, `capture-${Date.now()}.jpg`);
-        console.log('File created:', file);
         const formData = new FormData();
         formData.append('image', file);
         formData.append('requestId', requestId);
@@ -145,9 +139,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
                      localStorage.getItem('hrToken') || 
                      localStorage.getItem('token');
         
-        console.log('Token found:', !!token);
-        console.log('Making upload request to:', getApiUrl(API_ENDPOINTS.UPLOAD));
-        
         const response = await fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
           method: 'POST',
           headers: token ? {
@@ -156,9 +147,7 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
           body: formData
         });
 
-        console.log('Upload response status:', response.status);
         const data = await response.json();
-        console.log('Upload response data:', data);
 
         if (response.ok) {
           setUploadStatus('Upload successful!');
@@ -171,10 +160,9 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
             setUploadStatus('');
           }, 2000);
         } else {
-          setUploadStatus(`Upload failed: ${data.message}`);
+          setUploadStatus(`Upload failed: ${data.message || 'Unknown error'}`);
         }
       } else {
-        console.log('No requestId - storing for later upload');
         // If no requestId, just store the image data for later upload
         handleImageCapture(capturedImage);
         setUploadStatus('Image captured! Will be uploaded with form submission.');
@@ -184,7 +172,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
         }, 2000);
       }
     } catch (error) {
-      console.error('Upload error:', error);
       setUploadStatus('Upload failed. Please try again.');
     } finally {
       setIsUploading(false);

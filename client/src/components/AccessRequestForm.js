@@ -50,11 +50,54 @@ const AccessRequestForm = () => {
       alert('Photo capture is mandatory. Please capture your photo before submitting.');
       return;
     }
+
+    // Validate conditional fields based on purpose
+    if (formData.purposeOfAccess === 'interview') {
+      if (!formData.interviewPosition || !formData.interviewerName || !formData.interviewerPhone || !formData.interviewType) {
+        alert('Please fill in all interview fields: Position, Interviewer Name, Interviewer Phone, and Interview Type');
+        return;
+      }
+    }
+
+    if (formData.purposeOfAccess === 'onboarding') {
+      if (!formData.referenceName || !formData.referencePhoneNumber) {
+        alert('Please fill in all onboarding fields: Reference Name and Reference Phone Number');
+        return;
+      }
+    }
+
+    if (formData.purposeOfAccess === 'training') {
+      if (!formData.trainingName || !formData.trainerNumber || !formData.departmentName) {
+        alert('Please fill in all training fields: Training Name, Trainer Number, and Department Name');
+        return;
+      }
+    }
+
+    if (formData.purposeOfAccess === 'assignment') {
+      if (!formData.departmentName) {
+        alert('Please fill in the Department Name for assignment');
+        return;
+      }
+    }
+
+    if (formData.purposeOfAccess === 'visitor') {
+      if (!formData.visitorDescription) {
+        alert('Please fill in the Description for visitor');
+        return;
+      }
+    }
+
+    if (formData.purposeOfAccess === 'client') {
+      if (!formData.companyName || !formData.clientMobileNumber) {
+        alert('Please fill in all client fields: Company Name and Mobile Number');
+        return;
+      }
+    }
     
     setIsSubmitting(true);
 
     try {
-      // Prepare submit data based on purpose of access
+      // Prepare data for submission with correct field names for backend
       const submitData = {
         fullName: formData.fullName,
         email: formData.email,
@@ -95,7 +138,15 @@ const AccessRequestForm = () => {
         submitData.interviewType = formData.interviewType;
       }
 
-      const submitResponse = await fetch(getApiUrl(API_ENDPOINTS.REQUESTS), {
+      // Add images array (empty initially, will be populated after upload)
+      submitData.images = [];
+
+      // Add timeout to prevent hanging requests
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout - please try again')), 60000); // 60 second timeout
+    });
+
+      const fetchPromise = fetch(getApiUrl(API_ENDPOINTS.REQUESTS), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,19 +154,27 @@ const AccessRequestForm = () => {
         body: JSON.stringify(submitData),
       });
 
+      const submitResponse = await Promise.race([fetchPromise, timeoutPromise]);
+
       if (submitResponse.ok) {
         const result = await submitResponse.json();
-        console.log('Form submitted successfully:', result);
-        const requestId = result.requestId || result.data.id;
+        
+        // Extract requestId from response - backend returns both requestId and data.id
+        const requestId = result.requestId || result.data?.id || result.id;
         setSubmittedRequestId(requestId);
         
-        // Upload captured images if any exist
-        if (capturedImages.length > 0) {
-          await uploadCapturedImages(requestId);
-        }
-        
+        // Show success immediately after form submission
         setIsSubmitting(false);
         setShowSuccess(true);
+        
+        // Upload captured images in background if any exist
+        if (capturedImages.length > 0 && requestId) {
+          // Don't await this - let it run in background
+          uploadCapturedImages(requestId).catch(imageUploadError => {
+            console.error('Background image upload failed:', imageUploadError);
+            // Image upload failure doesn't affect the success state
+          });
+        }
         
         // Reset form after success
         setTimeout(() => {
@@ -143,12 +202,17 @@ const AccessRequestForm = () => {
           });
         }, 3000);
       } else {
-        const errorResult = await submitResponse.json();
-        throw new Error(errorResult.message || 'Form submission failed');
+        const errorData = await submitResponse.json().catch(() => ({}));
+        const errorMessage = errorData.message || 'Unknown error occurred';
+        alert(`Form submission failed: ${errorMessage}`);
       }
-
     } catch (error) {
-      console.error('Form submission error:', error);
+      if (error.name === 'AbortError') {
+        alert('Request timed out. Please check your internet connection and try again.');
+      } else {
+        alert(`Error submitting form: ${error.message || 'Network error occurred'}`);
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -165,15 +229,31 @@ const AccessRequestForm = () => {
                      localStorage.getItem('hrToken') || 
                      localStorage.getItem('token');
 
-        await fetch(getApiUrl('/api/images/upload'), {
+        // Add timeout for image upload
+        const uploadTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Image upload timeout')), 30000); // 30 second timeout
+        });
+
+        const uploadPromise = fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
           method: 'POST',
           headers: token ? {
             'Authorization': `Bearer ${token}`
           } : {},
           body: formData
         });
+
+        const response = await Promise.race([uploadPromise, uploadTimeoutPromise]);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          throw new Error(errorData.message || 'Image upload failed');
+        }
+
+        console.log('Image uploaded successfully for requestId:', requestId);
       } catch (error) {
         console.error('Error uploading image:', error);
+        // Don't throw error - just log it and continue with other images
+        // This prevents one failed image from stopping all uploads
       }
     }
   };
@@ -533,7 +613,15 @@ const AccessRequestForm = () => {
             <motion.span
               animate={isSubmitting ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
               transition={isSubmitting ? { repeat: Infinity, duration: 1 } : {}}
+              className="flex items-center justify-center gap-2"
             >
+              {isSubmitting && (
+                <motion.div
+                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+              )}
               {isSubmitting ? "Processing..." : "Submit Request"}
             </motion.span>
           </motion.button>
