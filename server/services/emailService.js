@@ -34,16 +34,42 @@ const createTransporter = () => {
       pass: process.env.SMTP_PASS,
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
     },
-    connectionTimeout: 60000, // 60 seconds
-    greetingTimeout: 30000, // 30 seconds
-    socketTimeout: 60000, // 60 seconds
+    connectionTimeout: 120000, // 2 minutes
+    greetingTimeout: 60000, // 1 minute
+    socketTimeout: 120000, // 2 minutes
     pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    rateLimit: 14 // max 14 messages per second
+    maxConnections: 3,
+    maxMessages: 50,
+    rateLimit: 10, // max 10 messages per second
+    debug: process.env.NODE_ENV === 'production', // Enable debug in production
+    logger: process.env.NODE_ENV === 'production' // Enable logging in production
   });
+};
+
+// Retry function for email sending
+const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Email attempt ${attempt}/${maxRetries} to: ${mailOptions.to}`);
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`Email sent successfully on attempt ${attempt}:`, result.messageId);
+      return result;
+    } catch (error) {
+      console.error(`Email attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Wait before retry (exponential backoff)
+      const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+      console.log(`Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
 };
 
 // Send access request approval/rejection notification
@@ -123,7 +149,7 @@ const sendAccessRequestNotification = async (userEmail, userName, status, approv
       html: htmlContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sendEmailWithRetry(transporter, mailOptions);
     console.log('Email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -212,7 +238,7 @@ const sendApproverNotification = async (approverEmail, approverName, userName, s
       html: htmlContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sendEmailWithRetry(transporter, mailOptions);
     console.log('Approver notification sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -306,7 +332,7 @@ const sendActionNotificationToStaff = async (recipientEmail, recipientName, user
       html: htmlContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sendEmailWithRetry(transporter, mailOptions);
     console.log('Staff action notification sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -536,7 +562,7 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
       html: htmlContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sendEmailWithRetry(transporter, mailOptions);
     console.log(`New request notification sent to ${recipientRole}:`, result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -631,7 +657,7 @@ const sendHRApprovalSuccessNotification = async (recipientEmail, recipientName, 
       html: htmlContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sendEmailWithRetry(transporter, mailOptions);
     console.log(`HR approval success notification sent to ${recipientRole}:`, result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
