@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 
+// Email service for QR Access Request System - Updated for production deployment
 // Helper function to format date and time in IST
 const formatDateTimeIST = (date) => {
   const istDate = new Date(date);
