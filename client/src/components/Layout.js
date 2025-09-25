@@ -174,7 +174,7 @@ const Layout = ({ children }) => {
                     display: { xs: 'block', sm: 'none' }
                   }}
                 >
-                  Speshway Solutions
+                 SPESHWAY SOLUTIONS
                 </Typography>
               </motion.div>
             </Box>
