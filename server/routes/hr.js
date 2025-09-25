@@ -3,7 +3,7 @@ const AccessRequest = require('../models/AccessRequest');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const { auth, adminOrHRAuth } = require('../middleware/auth');
-const { sendAccessRequestNotification, sendApproverNotification } = require('../services/emailService');
+const { sendAccessRequestNotification, sendApproverNotification, sendHRApprovalSuccessNotification } = require('../services/emailService');
 const router = express.Router();
 
 // Apply auth middleware to all HR routes
@@ -344,30 +344,47 @@ router.patch('/requests/:id', async (req, res) => {
           )
         );
 
-        // Send confirmation email to the HR who took the action
-        if (hrUser && hrUser.email) {
-          emailPromises.push(
-            sendApproverNotification(
-              hrUser.email,
-              req.user.username,
-              request.fullName,
-              status,
-              {
-                email: request.email,
-                purpose: request.purposeOfAccess,
-                whomToMeet: request.whomToMeet,
-                images: request.images
-              }
-            )
-          );
-        }
+        // If HR approved the request, send success notifications to both admin and HR
+        if (status === 'approved') {
+          // Send success notification to the HR who took the action
+          if (hrUser && hrUser.email) {
+            emailPromises.push(
+              sendHRApprovalSuccessNotification(
+                hrUser.email,
+                req.user.username,
+                'hr',
+                request.fullName,
+                request.email,
+                req.user.username,
+                request
+              )
+            );
+          }
 
-        // Send notification emails to all admin users in parallel
-        adminUsers.forEach(adminUser => {
-          if (adminUser.email) {
+          // Send success notification emails to all admin users
+          adminUsers.forEach(adminUser => {
+            if (adminUser.email) {
+              const adminName = adminUser.username || adminUser.email.split('@')[0];
+              emailPromises.push(
+                sendHRApprovalSuccessNotification(
+                  adminUser.email,
+                  adminName,
+                  'admin',
+                  request.fullName,
+                  request.email,
+                  req.user.username,
+                  request
+                )
+              );
+            }
+          });
+        } else {
+          // For rejections, send regular confirmation emails
+          // Send confirmation email to the HR who took the action
+          if (hrUser && hrUser.email) {
             emailPromises.push(
               sendApproverNotification(
-                adminUser.email,
+                hrUser.email,
                 req.user.username,
                 request.fullName,
                 status,
@@ -380,7 +397,27 @@ router.patch('/requests/:id', async (req, res) => {
               )
             );
           }
-        });
+
+          // Send notification emails to all admin users in parallel
+          adminUsers.forEach(adminUser => {
+            if (adminUser.email) {
+              emailPromises.push(
+                sendApproverNotification(
+                  adminUser.email,
+                  req.user.username,
+                  request.fullName,
+                  status,
+                  {
+                    email: request.email,
+                    purpose: request.purposeOfAccess,
+                    whomToMeet: request.whomToMeet,
+                    images: request.images
+                  }
+                )
+              );
+            }
+          });
+        }
 
         // Execute all email operations in parallel
         await Promise.allSettled(emailPromises);

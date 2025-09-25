@@ -2,7 +2,7 @@ const express = require('express');
 const AccessRequest = require('../models/AccessRequest');
 const User = require('../models/User');
 const Message = require('../models/Message');
-const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotificationToStaff, sendNewAccessRequestNotification } = require('../services/emailService');
+const { formatDateTimeIST, sendAccessRequestNotification, sendActionNotificationToStaff, sendNewAccessRequestNotification, sendHRApprovalSuccessNotification } = require('../services/emailService');
 const router = express.Router();
 
 // @route   GET /api/requests/email-action
@@ -381,53 +381,97 @@ router.get('/email-action', async (req, res) => {
       );
       console.log('Notification sent to request user:', accessRequest.email);
 
-      // Send notification emails to all HR users (except the one who took action)
-      const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
-      console.log('Found HR users:', hrUsers.length);
-      
-      for (const hrUser of hrUsers) {
-        if (hrUser.email && hrUser.email !== email) {
-          const recipientName = hrUser.username || hrUser.email.split('@')[0];
-          await sendActionNotificationToStaff(
-            hrUser.email,
-            recipientName,
-            accessRequest.fullName,
-            action === 'approve' ? 'approved' : 'rejected',
-            `${role.toUpperCase()} (${email})`,
-            new Date(),
-            {
-              email: accessRequest.email,
-              purpose: accessRequest.purposeOfAccess,
-              whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images
-            }
-          );
-          console.log(`Action notification sent to HR: ${hrUser.email}`);
+      // If HR approved via email, send success notifications to both admin and HR
+      if (role.toLowerCase() === 'hr' && action === 'approve') {
+        // Send success notification emails to all HR users (including the one who took action)
+        const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+        console.log('Found HR users for success notification:', hrUsers.length);
+        
+        for (const hrUser of hrUsers) {
+          if (hrUser.email) {
+            const recipientName = hrUser.username || hrUser.email.split('@')[0];
+            await sendHRApprovalSuccessNotification(
+              hrUser.email,
+              recipientName,
+              'hr',
+              accessRequest.fullName,
+              accessRequest.email,
+              `Email Action (${email})`,
+              accessRequest
+            );
+            console.log(`HR approval success notification sent to HR: ${hrUser.email}`);
+          }
         }
-      }
 
-      // Send notification emails to all Admin users (except the one who took action)
-      const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
-      console.log('Found Admin users:', adminUsers.length);
-      
-      for (const adminUser of adminUsers) {
-        if (adminUser.email && adminUser.email !== email) {
-          const recipientName = adminUser.username || adminUser.email.split('@')[0];
-          await sendActionNotificationToStaff(
-            adminUser.email,
-            recipientName,
-            accessRequest.fullName,
-            action === 'approve' ? 'approved' : 'rejected',
-            `${role.toUpperCase()} (${email})`,
-            new Date(),
-            {
-              email: accessRequest.email,
-              purpose: accessRequest.purposeOfAccess,
-              whomToMeet: accessRequest.whomToMeet,
-              images: accessRequest.images
-            }
-          );
-          console.log(`Action notification sent to Admin: ${adminUser.email}`);
+        // Send success notification emails to all Admin users
+        const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+        console.log('Found Admin users for success notification:', adminUsers.length);
+        
+        for (const adminUser of adminUsers) {
+          if (adminUser.email) {
+            const recipientName = adminUser.username || adminUser.email.split('@')[0];
+            await sendHRApprovalSuccessNotification(
+              adminUser.email,
+              recipientName,
+              'admin',
+              accessRequest.fullName,
+              accessRequest.email,
+              `Email Action (${email})`,
+              accessRequest
+            );
+            console.log(`HR approval success notification sent to Admin: ${adminUser.email}`);
+          }
+        }
+      } else {
+        // For other cases (admin actions or HR rejections), send regular action notifications
+        // Send notification emails to all HR users (except the one who took action)
+        const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+        console.log('Found HR users:', hrUsers.length);
+        
+        for (const hrUser of hrUsers) {
+          if (hrUser.email && hrUser.email !== email) {
+            const recipientName = hrUser.username || hrUser.email.split('@')[0];
+            await sendActionNotificationToStaff(
+              hrUser.email,
+              recipientName,
+              accessRequest.fullName,
+              action === 'approve' ? 'approved' : 'rejected',
+              `${role.toUpperCase()} (${email})`,
+              new Date(),
+              {
+                email: accessRequest.email,
+                purpose: accessRequest.purposeOfAccess,
+                whomToMeet: accessRequest.whomToMeet,
+                images: accessRequest.images
+              }
+            );
+            console.log(`Action notification sent to HR: ${hrUser.email}`);
+          }
+        }
+
+        // Send notification emails to all Admin users (except the one who took action)
+        const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+        console.log('Found Admin users:', adminUsers.length);
+        
+        for (const adminUser of adminUsers) {
+          if (adminUser.email && adminUser.email !== email) {
+            const recipientName = adminUser.username || adminUser.email.split('@')[0];
+            await sendActionNotificationToStaff(
+              adminUser.email,
+              recipientName,
+              accessRequest.fullName,
+              action === 'approve' ? 'approved' : 'rejected',
+              `${role.toUpperCase()} (${email})`,
+              new Date(),
+              {
+                email: accessRequest.email,
+                purpose: accessRequest.purposeOfAccess,
+                whomToMeet: accessRequest.whomToMeet,
+                images: accessRequest.images
+              }
+            );
+            console.log(`Action notification sent to Admin: ${adminUser.email}`);
+          }
         }
       }
 
