@@ -78,7 +78,7 @@ const createTransporter = () => {
     };
   }
 
-  return nodemailer.createTransporter(transporterConfig);
+  return nodemailer.createTransport(transporterConfig);
 };
 
 // Validate email configuration
