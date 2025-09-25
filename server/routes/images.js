@@ -30,14 +30,24 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Upload image endpoint - disable body parsing for multipart
+// Upload endpoint
 router.post('/upload', (req, res, next) => {
   console.log('=== IMAGE UPLOAD REQUEST RECEIVED ===');
   console.log('Request headers:', req.headers);
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
-  // Skip express.json() and express.urlencoded() for this route
-  upload.single('image')(req, res, next);
+  
+  // Handle multer upload with error handling
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
+      }
+      return res.status(400).json({ error: 'File upload error: ' + err.message });
+    }
+    next();
+  });
 }, async (req, res) => {
   try {
     console.log('Image upload request received');
@@ -66,12 +76,24 @@ router.post('/upload', (req, res, next) => {
         ContentType: req.file.mimetype
       };
 
-      console.log('Attempting S3 upload...');
+      console.log('Attempting S3 upload with params:', {
+        bucket: S3_BUCKET,
+        key: filename,
+        contentType: req.file.mimetype,
+        bufferSize: req.file.buffer.length
+      });
+      
       const uploadResult = await s3.send(new PutObjectCommand(uploadParams));
       imageUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${filename}`;
-      console.log('File uploaded to S3:', imageUrl);
+      console.log('File uploaded to S3 successfully:', imageUrl);
     } catch (s3Error) {
-      console.log('S3 upload failed, falling back to local storage:', s3Error.message);
+      console.error('S3 upload failed with error:', {
+        message: s3Error.message,
+        code: s3Error.code,
+        statusCode: s3Error.$metadata?.httpStatusCode,
+        requestId: s3Error.$metadata?.requestId
+      });
+      console.log('Falling back to local storage...');
       
       // Fallback to local storage
       const localFilename = `${timestamp}-${req.file.originalname}`;

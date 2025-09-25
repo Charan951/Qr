@@ -712,6 +712,12 @@ router.get('/email-action', async (req, res) => {
 // @desc    Submit access request form
 // @access  Public
 router.post('/', async (req, res) => {
+  console.log('=== FORM SUBMISSION REQUEST RECEIVED ===');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', req.headers);
+  console.log('Request body keys:', Object.keys(req.body));
+  console.log('Request body:', req.body);
+  
   try {
     const {
       fullName,
@@ -827,58 +833,13 @@ router.post('/', async (req, res) => {
       requestData.interviewType = req.body.interviewType;
     }
 
+    console.log('Creating access request with data:', requestData);
     const accessRequest = new AccessRequest(requestData);
     await accessRequest.save();
-
-    // Send email notifications to HR and Admin users immediately after request creation
-    try {
-      // Get all active HR users
-      const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
-      
-      // Get all active Admin users  
-      const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
-
-      // Send notifications to all HR users
-      for (const hrUser of hrUsers) {
-        if (hrUser.email) {
-          try {
-            await sendNewAccessRequestNotification(
-              hrUser.email,
-              hrUser.username,
-              'HR',
-              accessRequest
-            );
-            console.log(`New request notification sent to HR: ${hrUser.email}`);
-          } catch (emailError) {
-            console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
-          }
-        }
-      }
-
-      // Send notifications to all Admin users
-      for (const adminUser of adminUsers) {
-        if (adminUser.email) {
-          try {
-            await sendNewAccessRequestNotification(
-              adminUser.email,
-              adminUser.username,
-              'Admin',
-              accessRequest
-            );
-            console.log(`New request notification sent to Admin: ${adminUser.email}`);
-          } catch (emailError) {
-            console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
-          }
-        }
-      }
-
-    } catch (error) {
-      console.error('Error sending email notifications after request creation:', error);
-      // Don't fail the request creation if email fails
-    }
+    console.log('Access request saved successfully with ID:', accessRequest._id);
 
     // Return the request ID immediately so frontend can upload images
-    res.status(201).json({
+    const responseData = {
       success: true,
       message: 'Access request submitted successfully',
       requestId: accessRequest._id,
@@ -889,6 +850,58 @@ router.post('/', async (req, res) => {
         status: accessRequest.status,
         submittedDate: accessRequest.submittedDate,
         submittedTime: accessRequest.submittedTime
+      }
+    };
+    
+    console.log('Sending response:', responseData);
+    res.status(201).json(responseData);
+    console.log('Response sent successfully');
+
+    // Send email notifications asynchronously after response is sent
+    setImmediate(async () => {
+      try {
+        // Get all active HR users
+        const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+        
+        // Get all active Admin users  
+        const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+
+        // Send notifications to all HR users
+        for (const hrUser of hrUsers) {
+          if (hrUser.email) {
+            try {
+              await sendNewAccessRequestNotification(
+                hrUser.email,
+                hrUser.username,
+                'HR',
+                accessRequest
+              );
+              console.log(`New request notification sent to HR: ${hrUser.email}`);
+            } catch (emailError) {
+              console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+            }
+          }
+        }
+
+        // Send notifications to all Admin users
+        for (const adminUser of adminUsers) {
+          if (adminUser.email) {
+            try {
+              await sendNewAccessRequestNotification(
+                adminUser.email,
+                adminUser.username,
+                'Admin',
+                accessRequest
+              );
+              console.log(`New request notification sent to Admin: ${adminUser.email}`);
+            } catch (emailError) {
+              console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+            }
+          }
+        }
+
+      } catch (error) {
+        console.error('Error sending email notifications after request creation:', error);
       }
     });
 

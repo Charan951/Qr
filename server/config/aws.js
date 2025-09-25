@@ -3,11 +3,17 @@ const { S3Client, ListObjectsCommand } = require('@aws-sdk/client-s3');
 // AWS Configuration
 const awsConfig = {
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAWXDXCIJMTVDLGZB4',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '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',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
   region: process.env.AWS_REGION || 'ap-south-1'
 };
+
+// Validate AWS credentials
+if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+  console.error('AWS credentials not found in environment variables');
+  console.error('Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in your .env file');
+}
 
 // Create S3 client
 const s3 = new S3Client(awsConfig);

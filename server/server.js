@@ -59,20 +59,15 @@ app.use(cors({
 // Add explicit OPTIONS handling for preflight requests
 app.options('*', cors());
 
-// Skip body parsing for image upload routes
-app.use((req, res, next) => {
-  if (req.path === '/api/images/upload') {
-    return next();
-  }
-  express.json({ limit: '50mb' })(req, res, next);
+// Body parsing middleware - skip only for image upload routes
+app.use('/api/images/upload', (req, res, next) => {
+  // Skip body parsing for image uploads (handled by multer)
+  next();
 });
 
-app.use((req, res, next) => {
-  if (req.path === '/api/images/upload') {
-    return next();
-  }
-  express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
-});
+// Apply body parsing for all other routes
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Connect to MongoDB with timeout and retry logic
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/access-request-db';
