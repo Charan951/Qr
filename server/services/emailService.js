@@ -449,7 +449,7 @@ const sendNewAccessRequestNotification = async (recipientEmail, recipientName, r
     })).toString('base64');
     
     // Dynamically determine base URL based on environment
-    const baseUrl = process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://qr-nk38.onrender.com' : `http://localhost:${process.env.PORT || 5000}`);
+    const baseUrl = process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://qr-access-request-api.onrender.com' : `http://localhost:${process.env.PORT || 5000}`);
     
     // Log BASE_URL for debugging
     console.log('EmailService - Using BASE_URL:', baseUrl);
