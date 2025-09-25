@@ -127,14 +127,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Routes
-app.use('/api/requests', require('./routes/requests'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/hr', require('./routes/hr'));
-app.use('/api/messages', require('./routes/messages'));
-app.use('/api', require('./routes/upload'));
-app.use('/api/images', require('./routes/images'));
-
 // Health check endpoint with detailed status
 app.get('/api/health', (req, res) => {
   const healthStatus = {
@@ -171,6 +163,14 @@ app.get('/api/health/email', async (req, res) => {
     });
   }
 });
+
+app.use('/api/requests', require('./routes/requests'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/hr', require('./routes/hr'));
+app.use('/api/messages', require('./routes/messages'));
+app.use('/api', require('./routes/upload'));
+app.use('/api/images', require('./routes/images'));
 
 // Backend API only - frontend is deployed separately on Vercel
 
