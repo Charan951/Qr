@@ -4,6 +4,11 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Import models to ensure they are registered with mongoose
+const User = require('./models/User');
+const AccessRequest = require('./models/AccessRequest');
+const Message = require('./models/Message');
+
 // Log environment variables for debugging (without sensitive data)
 console.log('Environment Configuration:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
