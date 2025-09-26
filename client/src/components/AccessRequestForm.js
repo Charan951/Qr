@@ -679,8 +679,6 @@ const AccessRequestForm = () => {
   );
 };
 
-export default AccessRequestForm;
-
 // Animation variants for form elements
 const formVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -739,38 +737,6 @@ const successVariants = {
   }
 };
 
-// Enhanced micro-interaction variants
-const microInteractionVariants = {
-  tap: { scale: 0.95 },
-  hover: { scale: 1.02, transition: { duration: 0.2 } },
-  focus: { 
-    scale: 1.02, 
-    boxShadow: "0 0 0 3px rgba(25, 118, 210, 0.3)",
-    transition: { duration: 0.2 }
-  }
-};
-
-const feedbackVariants = {
-  success: {
-    scale: [1, 1.1, 1],
-    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
-    transition: { duration: 0.6 }
-  },
-  error: {
-    x: [-10, 10, -10, 10, 0],
-    backgroundColor: ["#f44336", "#ef5350", "#f44336"],
-    transition: { duration: 0.4 }
-  },
-  loading: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 0.8, repeat: Infinity }
-  }
-};
-
 const fieldValidationVariants = {
   valid: {
     borderColor: "#4caf50",
@@ -795,3 +761,5 @@ const progressVariants = {
   animate: { width: "100%" },
   transition: { duration: 2, ease: "easeInOut" }
 };
+
+export default AccessRequestForm;

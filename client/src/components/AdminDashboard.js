@@ -49,6 +49,10 @@ import ImageViewer from './ImageViewer';
 import MessageCenter from './MessageCenter';
 import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
+
+
+
+
 // Animation variants for micro-interactions and feedback
 const microInteractionVariants = {
   tap: { scale: 0.95 },
