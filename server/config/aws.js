@@ -31,7 +31,6 @@ const testS3Connection = async () => {
     return true;
   } catch (error) {
     console.error('S3 connection failed:', error.message);
-    return false;
   }
 };
 
