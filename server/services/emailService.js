@@ -23,10 +23,10 @@ const createTransporter = () => {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
     secure: process.env.SMTP_SECURE,
-    user: process.env.SMTP_USER ? '***' : 'NOT_SET',
-    pass: process.env.SMTP_PASS ? '***' : 'NOT_SET',
-    emailUser: process.env.EMAIL_USER ? '***' : 'NOT_SET',
-    emailPass: process.env.EMAIL_PASS ? '***' : 'NOT_SET',
+    user: process.env.SMTP_USER ,
+    pass: process.env.SMTP_PASS ,
+    emailUser: process.env.EMAIL_USER ,
+    emailPass: process.env.EMAIL_PASS ,
     nodeEnv: process.env.NODE_ENV
   });
 
