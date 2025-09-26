@@ -134,21 +134,14 @@ const AdminDashboard = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const navigate = useNavigate();
 
-  console.log('AdminDashboard render - requests:', requests);
-  console.log('AdminDashboard render - requests length:', requests.length);
-
   useEffect(() => {
-    console.log('AdminDashboard useEffect triggered');
     // Check authentication
     const token = localStorage.getItem('adminToken');
-    console.log('Admin token check:', token ? 'Token found' : 'No token');
     if (!token) {
-      console.log('No token, redirecting to login');
       navigate('/admin/login');
       return;
     }
 
-    console.log('Calling fetchRequests and fetchStats');
     fetchRequests();
     fetchStats();
     fetchUnreadCount();
@@ -158,8 +151,6 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      console.log('fetchRequests - Token check:', token ? 'Token exists' : 'No token found');
-      console.log('fetchRequests - Token value:', token);
       
       const params = {
         page: pagination.page + 1,
@@ -168,7 +159,6 @@ const AdminDashboard = () => {
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
       };
-      console.log('fetchRequests - Request params:', params);
 
       const response = await axios.get(getApiUrl(API_ENDPOINTS.ADMIN_REQUESTS), {
         headers: {
@@ -179,20 +169,13 @@ const AdminDashboard = () => {
         timeout: 10000, // 10 second timeout
       });
 
-      console.log('fetchRequests - Response status:', response.status);
-      console.log('fetchRequests - Response data:', response.data);
-      console.log('fetchRequests - Requests array:', response.data.data);
-      console.log('fetchRequests - First request:', response.data.data?.[0]);
-
       setRequests(response.data.data || []);
       setPagination(prev => ({
         ...prev,
         total: response.data.pagination?.totalRequests || 0,
       }));
     } catch (error) {
-      console.error('fetchRequests - Error details:', error);
-      console.error('fetchRequests - Error response:', error.response?.data);
-      console.error('fetchRequests - Error status:', error.response?.status);
+      console.error('Error fetching requests:', error);
       
       if (error.code === 'ECONNABORTED') {
         setMessage({

@@ -4,14 +4,7 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-console.log('PORT:', process.env.PORT);
-console.log('BASE_URL:', process.env.BASE_URL);
-console.log('CLIENT_URL:', process.env.CLIENT_URL);
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Not set');
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Not set');
-console.log('SMTP_HOST:', process.env.SMTP_HOST);
-console.log('SMTP_USER:', process.env.SMTP_USER ? 'Set' : 'Not set');
+// Environment variables loaded
 
 const app = express();
 
@@ -73,23 +66,24 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/access-request-db';
 console.log('Connecting to MongoDB with URI:', mongoUri);
 
-const connectWithRetry = () => {
-  mongoose.connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-    maxPoolSize: 10, // Maintain up to 10 socket connections
-    bufferCommands: false, // Disable mongoose buffering
-  })
-  .then(() => {
+const connectWithRetry = async () => {
+  try {
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+      maxPoolSize: 10,
+      retryWrites: true,
+      w: 'majority'
+    });
     console.log('MongoDB connected successfully');
-  })
-  .catch(err => {
-    console.log('MongoDB connection error:', err.message);
-    console.log('Retrying MongoDB connection in 5 seconds...');
-    setTimeout(connectWithRetry, 5000);
-  });
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    connectWithRetry();
+  }
 };
 
 connectWithRetry();
@@ -110,17 +104,7 @@ if (process.env.NODE_ENV === 'production') {
   // Enhanced logging for production
   app.use((req, res, next) => {
     if (req.path.includes('/email-action')) {
-      console.log('Production email-action request:', {
-        method: req.method,
-        path: req.path,
-        query: req.query,
-        headers: {
-          'user-agent': req.get('User-Agent'),
-          'referer': req.get('Referer'),
-          'origin': req.get('Origin')
-        },
-        timestamp: new Date().toISOString()
-      });
+      // Simplified logging for email-action requests
     }
     next();
   });
@@ -185,10 +169,8 @@ app.use('/api/*', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`Health check available at: http://localhost:${PORT}/api/health`);
-  console.log('Server startup completed successfully');
 });
 
 // Graceful shutdown
