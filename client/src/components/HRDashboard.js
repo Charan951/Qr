@@ -128,46 +128,9 @@ const buttonVariants = {
   }
 };
 
-const tableVariants = {
-  hidden: { 
-    opacity: 0, 
-    y: 40 
-  },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 80,
-      damping: 15,
-      delay: 0.3
-    }
-  }
-};
 
-const dialogVariants = {
-  hidden: { 
-    opacity: 0, 
-    scale: 0.8,
-    y: 50
-  },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 25
-    }
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.8,
-    y: 50,
-    transition: { duration: 0.2 }
-  }
-};
+
+
 
 const HRDashboard = () => {
   const [currentView, setCurrentView] = useState('dashboard');

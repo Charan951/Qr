@@ -27,7 +27,6 @@ const AccessRequestForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [submittedRequestId, setSubmittedRequestId] = useState(null);
   const [capturedImages, setCapturedImages] = useState([]);
 
   const handleChange = (e) => {
@@ -161,7 +160,6 @@ const AccessRequestForm = () => {
         
         // Extract requestId from response - backend returns both requestId and data.id
         const requestId = result.requestId || result.data?.id || result.id;
-        setSubmittedRequestId(requestId);
         
         // Show success immediately after form submission
         setIsSubmitting(false);
@@ -737,29 +735,6 @@ const successVariants = {
   }
 };
 
-const fieldValidationVariants = {
-  valid: {
-    borderColor: "#4caf50",
-    boxShadow: "0 0 0 2px rgba(76, 175, 80, 0.2)",
-    transition: { duration: 0.3 }
-  },
-  invalid: {
-    borderColor: "#f44336",
-    boxShadow: "0 0 0 2px rgba(244, 67, 54, 0.2)",
-    x: [-5, 5, -5, 5, 0],
-    transition: { duration: 0.4 }
-  },
-  typing: {
-    borderColor: "#2196f3",
-    boxShadow: "0 0 0 2px rgba(33, 150, 243, 0.2)",
-    transition: { duration: 0.2 }
-  }
-};
 
-const progressVariants = {
-  initial: { width: "0%" },
-  animate: { width: "100%" },
-  transition: { duration: 2, ease: "easeInOut" }
-};
 
 export default AccessRequestForm;

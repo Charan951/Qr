@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
   Card,
@@ -53,67 +52,10 @@ import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
 
 
-// Animation variants for micro-interactions and feedback
-const microInteractionVariants = {
-  tap: { scale: 0.95 },
-  hover: { scale: 1.05, transition: { duration: 0.2 } },
-  focus: { scale: 1.02, boxShadow: "0 0 0 3px rgba(25, 118, 210, 0.3)" }
-};
 
-const feedbackVariants = {
-  success: {
-    scale: [1, 1.1, 1],
-    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
-    transition: { duration: 0.6 }
-  },
-  error: {
-    x: [-10, 10, -10, 10, 0],
-    transition: { duration: 0.4 }
-  },
-  loading: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  }
-};
-
-const chipVariants = {
-  approved: {
-    scale: [1, 1.2, 1],
-    backgroundColor: ["#4caf50", "#66bb6a", "#4caf50"],
-    transition: { duration: 0.5 }
-  },
-  rejected: {
-    scale: [1, 1.2, 1],
-    backgroundColor: ["#f44336", "#ef5350", "#f44336"],
-    transition: { duration: 0.5 }
-  },
-  pending: {
-    scale: [1, 1.1, 1],
-    transition: { duration: 0.3, repeat: Infinity, repeatDelay: 2 }
-  }
-};
-
-const cardHoverVariants = {
-  rest: { scale: 1, y: 0 },
-  hover: { 
-    scale: 1.02, 
-    y: -5,
-    boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-    transition: { duration: 0.3 }
-  }
-};
-
-const buttonPulseVariants = {
-  rest: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 0.6, repeat: Infinity, repeatDelay: 3 }
-  }
-};
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
-  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -143,7 +85,6 @@ const AdminDashboard = () => {
     }
 
     fetchRequests();
-    fetchStats();
     fetchUnreadCount();
   }, [navigate, filters, pagination.page, pagination.pageSize]);
 
@@ -200,17 +141,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(getApiUrl(API_ENDPOINTS.ADMIN_STATS), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+
 
   const fetchUnreadCount = async () => {
     try {
@@ -289,7 +220,6 @@ const AdminDashboard = () => {
       // Fetch updated data in the background
       setTimeout(() => {
         fetchRequests();
-        fetchStats();
       }, 100);
       
     } catch (error) {
