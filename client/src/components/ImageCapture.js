@@ -8,18 +8,65 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  // Camera error handling and camera selection state
+  const [errorMsg, setErrorMsg] = useState('');
+  const [facingMode, setFacingMode] = useState('user');
 
   const videoConstraints = {
-    width: 1280,
-    height: 720,
-    facingMode: "user"
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    facingMode
   };
 
   const capture = useCallback(() => {
+    if (!webcamRef.current) {
+      setErrorMsg('Camera not initialized. Please try starting the camera again.');
+      return;
+    }
     const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setErrorMsg('Failed to capture image. Please try again, or switch camera.');
+      return;
+    }
     setCapturedImage(imageSrc);
     setIsCapturing(false);
   }, [webcamRef]);
+
+  // Handle camera permission and device errors to guide the user
+  const handleUserMediaError = useCallback((err) => {
+    console.error('Camera error:', err);
+    let message = 'Unable to access the camera.';
+    if (err && err.name) {
+      switch (err.name) {
+        case 'NotAllowedError':
+        case 'PermissionDeniedError':
+          message = 'Camera permission was denied. Please allow camera access in your browser settings and try again.';
+          break;
+        case 'NotFoundError':
+        case 'DevicesNotFoundError':
+          message = 'No camera device found. Please ensure a camera is connected and not in use by another app.';
+          break;
+        case 'NotReadableError':
+          message = 'Camera is already in use by another application. Close other apps using the camera and retry.';
+          break;
+        case 'OverconstrainedError':
+          message = 'Requested camera constraints are not supported on this device. Try switching camera.';
+          break;
+        case 'SecurityError':
+          message = 'Camera access is blocked. Ensure you are using HTTPS (secure connection) and try again.';
+          break;
+        default:
+          message = `Camera error: ${err.name}`;
+      }
+    }
+    message += '\n\nTips:\n• Use the site over HTTPS (required on mobile browsers).\n• Allow camera permission when prompted.\n• On iOS Safari: Settings > Safari > Camera > Allow.\n• Try switching between front/back camera.';
+    setErrorMsg(message);
+    setIsCapturing(false);
+  }, []);
+
+  const handleUserMedia = useCallback(() => {
+    setErrorMsg('');
+  }, []);
 
   const retake = () => {
     setCapturedImage(null);
@@ -111,7 +158,7 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
         {!isCapturing && !capturedImage && (
           <div className="text-center">
             <button
-              onClick={() => setIsCapturing(true)}
+              onClick={() => { setErrorMsg(''); setIsCapturing(true); }}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
             >
               Start Camera
@@ -121,6 +168,11 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
 
         {isCapturing && !capturedImage && (
           <div className="space-y-4">
+            {errorMsg && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm whitespace-pre-line">
+                {errorMsg}
+              </div>
+            )}
             <div className="relative">
               <Webcam
                 audio={false}
@@ -128,6 +180,9 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
                 className="w-full max-w-xs sm:max-w-md mx-auto rounded-lg"
+                onUserMedia={handleUserMedia}
+                onUserMediaError={handleUserMediaError}
+                playsInline
               />
             </div>
             <div className="flex justify-center space-x-2 sm:space-x-4">
@@ -142,6 +197,12 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
                 className="bg-gray-500 hover:bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
               >
                 Cancel
+              </button>
+              <button
+                onClick={() => setFacingMode(prev => (prev === 'user' ? 'environment' : 'user'))}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base"
+              >
+                Switch Camera
               </button>
             </div>
           </div>

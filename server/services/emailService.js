@@ -17,7 +17,18 @@ const formatDateTimeIST = (date) => {
 };
 
 // Create transporter using environment variables
+const isEmailEnabled = () => process.env.EMAIL_ENABLED === 'true';
 const createTransporter = () => {
+  // Skip actual SMTP in local/dev unless explicitly enabled
+  if (!isEmailEnabled()) {
+    console.log('Email sending is disabled (set EMAIL_ENABLED=true to enable). Skipping SMTP transport.');
+    return {
+      // Mimic nodemailer API with no-op implementations
+      sendMail: async () => ({ accepted: [], rejected: [], messageId: null }),
+      verify: async () => true
+    };
+  }
+
   // Log environment variables for debugging (without exposing sensitive data)
   console.log('Creating email transporter with config:', {
     host: process.env.SMTP_HOST,
@@ -31,9 +42,16 @@ const createTransporter = () => {
   });
 
   // Use EMAIL_USER and EMAIL_PASS as fallback if SMTP_USER and SMTP_PASS are not set
-  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  
+  const rawSmtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const rawSmtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  // Sanitize credentials: trim and remove any whitespace groups in app password
+  const smtpUser = rawSmtpUser ? rawSmtpUser.trim() : '';
+  const smtpPass = rawSmtpPass ? rawSmtpPass.replace(/\s+/g, '').trim() : '';
+
+  if (rawSmtpPass && rawSmtpPass !== smtpPass) {
+    console.log('Sanitized SMTP/EMAIL app password by removing whitespace groups.');
+  }
+
   // Default SMTP configuration for production
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
@@ -52,41 +70,20 @@ const createTransporter = () => {
     secure: smtpSecure, // true for 465, false for other ports
     auth: {
       user: smtpUser,
-      pass: smtpPass,
-    },
-    tls: {
-      rejectUnauthorized: false,
-      ciphers: 'SSLv3'
-    },
-    connectionTimeout: 120000, // 2 minutes
-    greetingTimeout: 60000, // 1 minute
-    socketTimeout: 120000, // 2 minutes
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
-    rateLimit: 10, // max 10 messages per second
-    debug: process.env.NODE_ENV === 'production', // Enable debug in production
-    logger: process.env.NODE_ENV === 'production' // Enable logging in production
+      pass: smtpPass
+    }
   };
-
-  // Additional production-specific configurations
-  if (process.env.NODE_ENV === 'production') {
-    transporterConfig.tls = {
-      ...transporterConfig.tls,
-      minVersion: 'TLSv1.2',
-      maxVersion: 'TLSv1.3',
-      secureProtocol: 'TLSv1_2_method'
-    };
-  }
 
   return nodemailer.createTransport(transporterConfig);
 };
 
 // Validate email configuration
 const validateEmailConfig = () => {
-  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  const fromEmail = process.env.EMAIL_USER;
+  const rawSmtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const rawSmtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  const smtpUser = rawSmtpUser ? rawSmtpUser.trim() : '';
+  const smtpPass = rawSmtpPass ? rawSmtpPass.replace(/\s+/g, '').trim() : '';
+  const fromEmail = (process.env.EMAIL_USER || '').trim();
   
   const issues = [];
   
@@ -698,7 +695,7 @@ const sendHRApprovalSuccessNotification = async (recipientEmail, recipientName, 
           <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <p style="font-size: 16px; color: #333;">Dear ${recipientName},</p>
             
-            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <p style="font-size: 16px; color: #333; margin: 0;">
                 <strong>Great news!</strong> The access request for <strong>${userName}</strong> has been 
                 <strong style="color: #4CAF50;">APPROVED SUCCESSFULLY</strong> by HR: <strong>${approverName}</strong>.

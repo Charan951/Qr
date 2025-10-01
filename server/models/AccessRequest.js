@@ -124,7 +124,9 @@ const accessRequestSchema = new mongoose.Schema({
     trim: true
   }]
 }, {
-  timestamps: true
+  timestamps: true,
+  autoCreate: true,
+  autoIndex: true
 });
 
 // Optimized indexes for better query performance
