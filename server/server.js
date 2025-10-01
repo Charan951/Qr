@@ -66,6 +66,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/access-request-db';
 console.log('Connecting to MongoDB with URI:', mongoUri);
 
+const User = require('./models/User');
+const AccessRequest = require('./models/AccessRequest');
+const Message = require('./models/Message');
+
 const connectWithRetry = async () => {
   try {
     await mongoose.connect(mongoUri, {
@@ -79,6 +83,23 @@ const connectWithRetry = async () => {
       w: 'majority'
     });
     console.log('MongoDB connected successfully');
+
+    // Ensure collections and indexes exist on startup
+    try {
+      await Promise.all([
+        User.createCollection(),
+        AccessRequest.createCollection(),
+        Message.createCollection()
+      ]);
+      await Promise.all([
+        User.init(),
+        AccessRequest.init(),
+        Message.init()
+      ]);
+      console.log('Verified MongoDB collections and indexes are initialized');
+    } catch (initErr) {
+      console.error('Error initializing collections/indexes:', initErr.message);
+    }
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
     await new Promise(resolve => setTimeout(resolve, 5000));

@@ -16,8 +16,8 @@ const seedAdminUsers = async () => {
     // Create admin user
     const adminUser = new User({
       username: 'speshway',
-      email: 'speshway2017@gmail.com',
-      password: 'Speshway@@2017',
+      email: 'pcharan214@gmail.com',
+      password: 'Speshway',
       role: 'admin',
       isActive: true
     });

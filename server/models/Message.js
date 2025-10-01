@@ -69,7 +69,9 @@ const messageSchema = new mongoose.Schema({
     additionalInfo: mongoose.Schema.Types.Mixed
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  autoCreate: true,
+  autoIndex: true
 });
 
 // Index for efficient querying
