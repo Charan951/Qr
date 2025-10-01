@@ -91,10 +91,11 @@ const connectWithRetry = async () => {
         AccessRequest.createCollection(),
         Message.createCollection()
       ]);
+      // Sync indexes to match schema definitions (drops mismatched indexes and recreates as needed)
       await Promise.all([
-        User.init(),
-        AccessRequest.init(),
-        Message.init()
+        User.syncIndexes(),
+        AccessRequest.syncIndexes(),
+        Message.syncIndexes()
       ]);
       console.log('Verified MongoDB collections and indexes are initialized');
     } catch (initErr) {
