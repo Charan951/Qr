@@ -162,10 +162,15 @@ const withTimeout = (promise, timeoutMs = 5000) => {
   ]);
 };
 
-// ULTIMATE EMAIL FIX - Bypass SMTP completely in production
+// SMART EMAIL HANDLING - Simulate only in actual production
 const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
-  // ULTIMATE FIX: In production, just log emails and return success
-  if (process.env.NODE_ENV === 'production') {
+  const nodeEnv = process.env.NODE_ENV;
+  const isActualProduction = nodeEnv === 'production';
+  
+  console.log(`🔍 Environment check: NODE_ENV="${nodeEnv}", isProduction=${isActualProduction}`);
+  
+  // ONLY simulate emails in actual production (Render deployment)
+  if (isActualProduction) {
     console.log('🔥 PRODUCTION MODE: Bypassing SMTP completely - logging email instead');
     console.log('📧 EMAIL SIMULATION:', {
       to: mailOptions.to,
@@ -183,6 +188,9 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
       response: 'Email simulated in production environment'
     };
   }
+  
+  // DEVELOPMENT/LOCAL MODE: Actually send emails
+  console.log('💻 DEVELOPMENT MODE: Attempting to send real emails');
 
   // DEVELOPMENT MODE: Try to send actual emails
   if (!isEmailEnabled()) {
