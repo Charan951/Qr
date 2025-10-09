@@ -76,7 +76,8 @@ EMAIL_USER=your-gmail@gmail.com
 EMAIL_PASS=your-gmail-app-password
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_SECURE=false
+# IMPORTANT: Do NOT set SMTP_SECURE=true for port 587 - it causes connection timeouts
+# Port 587 uses STARTTLS (secure: false), only port 465 uses SSL (secure: true)
 SMTP_USER=your-gmail@gmail.com
 SMTP_PASS=your-gmail-app-password
 ```
@@ -110,12 +111,17 @@ SMTP_PASS=your-gmail-app-password
 - Ensure 2-Factor Authentication is enabled
 - Remove any spaces from the app password
 
-### Issue 4: "Connection timeout"
-**Cause:** Network restrictions in deployment environment
+### Issue 4: "Connection timeout" (ETIMEDOUT)
+**Cause:** Incorrect SMTP configuration or network restrictions
 **Solution:**
-- Increased timeout values are now configured
+- **CRITICAL FIX:** Ensure `SMTP_SECURE` is NOT set to `true` when using port 587
+- Port 587 requires `secure: false` (STARTTLS), not `secure: true` (SSL)
+- Increased timeout values are now configured (2 minutes)
 - Check deployment platform's network policies
+- Verify Gmail app password is correct and 2FA is enabled
 - Consider using different SMTP provider if Gmail is blocked
+
+**Common Mistake:** Setting `SMTP_SECURE=true` with `SMTP_PORT=587` causes immediate timeouts
 
 ## Debugging Steps
 

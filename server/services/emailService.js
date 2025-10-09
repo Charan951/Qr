@@ -66,7 +66,8 @@ const createTransporter = () => {
   // Default SMTP configuration for production
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
   const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+  // Fix: Port 587 should use STARTTLS (secure: false), only port 465 uses SSL (secure: true)
+  const smtpSecure = smtpPort === 465;
 
   console.log('Final SMTP config:', {
     host: smtpHost,
@@ -84,20 +85,29 @@ const createTransporter = () => {
       user: smtpUser,
       pass: smtpPass
     },
-    // Additional options for better deployment compatibility
+    // Enhanced options for deployment environments
+    connectionTimeout: 120000, // 2 minutes for slow deployment networks
+    greetingTimeout: 60000, // 1 minute
+    socketTimeout: 120000, // 2 minutes
+    // TLS configuration for different environments
     tls: {
-      rejectUnauthorized: false // Allow self-signed certificates in some deployment environments
+      rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+      ciphers: 'SSLv3'
     },
-    connectionTimeout: 60000, // 60 seconds
-    greetingTimeout: 30000, // 30 seconds
-    socketTimeout: 60000, // 60 seconds
-    // For Gmail specifically
+    // For Gmail specifically - override TLS settings
     ...(smtpHost === 'smtp.gmail.com' && {
       service: 'gmail',
+      requireTLS: true,
       tls: {
-        rejectUnauthorized: true // Gmail requires proper certificates
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2'
       }
-    })
+    }),
+    // Additional deployment-friendly options
+    pool: false, // Disable connection pooling for deployment environments
+    maxConnections: 1,
+    maxMessages: 1,
+    rateLimit: false
   };
 
   return nodemailer.createTransport(transporterConfig);
