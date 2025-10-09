@@ -205,7 +205,15 @@ router.patch('/requests/:id', async (req, res) => {
         // Prepare all email operations
         const emailPromises = [];
         
+        console.log('=== EMAIL DEBUG INFO ===');
+        console.log('Admin user:', adminUser);
+        console.log('Admin email:', adminUser?.email);
+        console.log('Request user:', request.fullName);
+        console.log('Status:', status);
+        console.log('========================');
+        
         // Send email to the user who made the request
+        console.log('Sending email to user:', request.email);
         emailPromises.push(
           sendAccessRequestNotification(
             request.email,
@@ -217,7 +225,28 @@ router.patch('/requests/:id', async (req, res) => {
           )
         );
 
-        // Send notification emails to all HR users only (not to the admin who took the action to avoid duplicates)
+        // Send confirmation email to the admin who took the action
+        if (adminUser && adminUser.email) {
+          console.log('Sending confirmation email to admin:', adminUser.email);
+          emailPromises.push(
+            sendApproverNotification(
+              adminUser.email,
+              req.user.username,
+              request.fullName,
+              status,
+              {
+                email: request.email,
+                purpose: request.purposeOfAccess,
+                whomToMeet: request.whomToMeet,
+                images: request.images
+              }
+            )
+          );
+        } else {
+          console.log('Admin user or email not found - cannot send confirmation email');
+        }
+
+        // Send notification emails to all HR users
         hrUsers.forEach(hrUser => {
           if (hrUser.email) {
             emailPromises.push(
@@ -238,7 +267,17 @@ router.patch('/requests/:id', async (req, res) => {
         });
 
         // Execute all email operations in parallel
-        await Promise.allSettled(emailPromises);
+        console.log('Executing', emailPromises.length, 'email operations...');
+        const emailResults = await Promise.allSettled(emailPromises);
+        
+        console.log('Email results:');
+        emailResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            console.log(`Email ${index + 1}: SUCCESS`, result.value);
+          } else {
+            console.log(`Email ${index + 1}: FAILED`, result.reason);
+          }
+        });
 
         // Create message for both admin and HR to see
         if (status === 'approved') {

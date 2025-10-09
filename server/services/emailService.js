@@ -242,6 +242,13 @@ const sendAccessRequestNotification = async (userEmail, userName, status, approv
 // Send notification to admin/HR about their action
 const sendApproverNotification = async (approverEmail, approverName, userName, status, requestDetails) => {
   try {
+    console.log('=== SENDING APPROVER NOTIFICATION ===');
+    console.log('To:', approverEmail);
+    console.log('Approver Name:', approverName);
+    console.log('User Name:', userName);
+    console.log('Status:', status);
+    console.log('=====================================');
+    
     const transporter = createTransporter();
     
     const subject = `Access Request ${status === 'approved' ? 'Approved' : 'Rejected'} - Confirmation`;

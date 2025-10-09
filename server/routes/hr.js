@@ -344,9 +344,27 @@ router.patch('/requests/:id', async (req, res) => {
           )
         );
 
-        // If HR approved the request, send success notifications to admins only (not to the HR who approved to avoid duplicates)
+        // Send confirmation email to the HR person who took the action
+        if (hrUser && hrUser.email) {
+          emailPromises.push(
+            sendApproverNotification(
+              hrUser.email,
+              req.user.username,
+              request.fullName,
+              status,
+              {
+                email: request.email,
+                purpose: request.purposeOfAccess,
+                whomToMeet: request.whomToMeet,
+                images: request.images
+              }
+            )
+          );
+        }
+
+        // If HR approved the request, send success notifications to admins
         if (status === 'approved') {
-          // Send success notification emails to all admin users only
+          // Send success notification emails to all admin users
           adminUsers.forEach(adminUser => {
             if (adminUser.email) {
               const adminName = adminUser.username || adminUser.email.split('@')[0];
@@ -364,7 +382,7 @@ router.patch('/requests/:id', async (req, res) => {
             }
           });
         } else {
-          // For rejections, send notification emails to all admin users only (not to the HR who rejected to avoid duplicates)
+          // For rejections, send notification emails to all admin users
           adminUsers.forEach(adminUser => {
             if (adminUser.email) {
               emailPromises.push(
