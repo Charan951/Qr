@@ -158,8 +158,8 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
       console.log(`Email subject: ${mailOptions.subject}`);
       console.log(`Email from: ${mailOptions.from}`);
       
-      // Verify transporter connection before sending
-      if (attempt === 1) {
+      // Verify transporter connection before sending (skip in production to avoid timeouts)
+      if (attempt === 1 && process.env.NODE_ENV !== 'production') {
         console.log('Verifying SMTP connection...');
         try {
           await transporter.verify();
@@ -174,6 +174,8 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
           // Continue anyway - some deployment environments have issues with verify()
           console.log('Continuing with email send despite verification failure...');
         }
+      } else if (attempt === 1 && process.env.NODE_ENV === 'production') {
+        console.log('Skipping SMTP verification in production environment to avoid timeouts');
       }
       
       const result = await transporter.sendMail(mailOptions);
