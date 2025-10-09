@@ -344,24 +344,9 @@ router.patch('/requests/:id', async (req, res) => {
           )
         );
 
-        // If HR approved the request, send success notifications to both admin and HR
+        // If HR approved the request, send success notifications to admins only (not to the HR who approved to avoid duplicates)
         if (status === 'approved') {
-          // Send success notification to the HR who took the action
-          if (hrUser && hrUser.email) {
-            emailPromises.push(
-              sendHRApprovalSuccessNotification(
-                hrUser.email,
-                req.user.username,
-                'hr',
-                request.fullName,
-                request.email,
-                req.user.username,
-                request
-              )
-            );
-          }
-
-          // Send success notification emails to all admin users
+          // Send success notification emails to all admin users only
           adminUsers.forEach(adminUser => {
             if (adminUser.email) {
               const adminName = adminUser.username || adminUser.email.split('@')[0];
@@ -379,26 +364,7 @@ router.patch('/requests/:id', async (req, res) => {
             }
           });
         } else {
-          // For rejections, send regular confirmation emails
-          // Send confirmation email to the HR who took the action
-          if (hrUser && hrUser.email) {
-            emailPromises.push(
-              sendApproverNotification(
-                hrUser.email,
-                req.user.username,
-                request.fullName,
-                status,
-                {
-                  email: request.email,
-                  purpose: request.purposeOfAccess,
-                  whomToMeet: request.whomToMeet,
-                  images: request.images
-                }
-              )
-            );
-          }
-
-          // Send notification emails to all admin users in parallel
+          // For rejections, send notification emails to all admin users only (not to the HR who rejected to avoid duplicates)
           adminUsers.forEach(adminUser => {
             if (adminUser.email) {
               emailPromises.push(

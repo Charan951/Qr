@@ -217,25 +217,7 @@ router.patch('/requests/:id', async (req, res) => {
           )
         );
 
-        // Send confirmation email to the admin who took the action
-        if (adminUser && adminUser.email) {
-          emailPromises.push(
-            sendApproverNotification(
-              adminUser.email,
-              req.user.username,
-              request.fullName,
-              status,
-              {
-                email: request.email,
-                purpose: request.purposeOfAccess,
-                whomToMeet: request.whomToMeet,
-                images: request.images
-              }
-            )
-          );
-        }
-
-        // Send notification emails to all HR users in parallel
+        // Send notification emails to all HR users only (not to the admin who took the action to avoid duplicates)
         hrUsers.forEach(hrUser => {
           if (hrUser.email) {
             emailPromises.push(

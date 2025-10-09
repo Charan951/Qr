@@ -5,6 +5,8 @@ const fs = require('fs');
 const { s3, S3_BUCKET } = require('../config/aws');
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const AccessRequest = require('../models/AccessRequest');
+const User = require('../models/User');
+const { sendNewAccessRequestNotification } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -114,59 +116,63 @@ router.post('/upload', (req, res, next) => {
       }, { new: true });
       console.log('Request updated:', updatedRequest ? 'Success' : 'Failed');
       
-      // Only send email notifications if this is the first image being uploaded
-      // This prevents duplicate emails when multiple images are uploaded
-      if (updatedRequest && updatedRequest.images.length === 1) {
-        try {
-          const { sendNewAccessRequestNotification } = require('../services/emailService');
-          const User = require('../models/User');
-
-          // Get all active HR users
-          const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+      // Send email notifications when the first image is uploaded
+      // This ensures that images are included in the notification emails
+      if (updatedRequest) {
+        console.log(`Image ${updatedRequest.images.length} uploaded successfully for request ${requestId}`);
+        
+        // Send email notifications only when the first image is uploaded
+        if (updatedRequest.images.length === 1) {
+          console.log('First image uploaded, sending email notifications...');
           
-          // Get all active Admin users  
-          const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+          // Send email notifications asynchronously
+          setImmediate(async () => {
+            try {
+              // Get all active HR users
+              const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+              
+              // Get all active Admin users  
+              const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
 
-          // Send notifications to all HR users
-          for (const hrUser of hrUsers) {
-            if (hrUser.email) {
-              try {
-                await sendNewAccessRequestNotification(
-                  hrUser.email,
-                  hrUser.username,
-                  'HR',
-                  updatedRequest
-                );
-                console.log(`Updated request notification sent to HR: ${hrUser.email}`);
-              } catch (emailError) {
-                console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+              // Send notifications to all HR users
+              for (const hrUser of hrUsers) {
+                if (hrUser.email) {
+                  try {
+                    await sendNewAccessRequestNotification(
+                      hrUser.email,
+                      hrUser.username,
+                      'HR',
+                      updatedRequest
+                    );
+                    console.log(`New request notification sent to HR: ${hrUser.email}`);
+                  } catch (emailError) {
+                    console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+                  }
+                }
               }
-            }
-          }
 
-          // Send notifications to all Admin users
-          for (const adminUser of adminUsers) {
-            if (adminUser.email) {
-              try {
-                await sendNewAccessRequestNotification(
-                  adminUser.email,
-                  adminUser.username,
-                  'Admin',
-                  updatedRequest
-                );
-                console.log(`Updated request notification sent to Admin: ${adminUser.email}`);
-              } catch (emailError) {
-                console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+              // Send notifications to all Admin users
+              for (const adminUser of adminUsers) {
+                if (adminUser.email) {
+                  try {
+                    await sendNewAccessRequestNotification(
+                      adminUser.email,
+                      adminUser.username,
+                      'Admin',
+                      updatedRequest
+                    );
+                    console.log(`New request notification sent to Admin: ${adminUser.email}`);
+                  } catch (emailError) {
+                    console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+                  }
+                }
               }
-            }
-          }
 
-        } catch (error) {
-          console.error('Error sending email notifications after first image upload:', error);
-          // Don't fail the image upload if email fails
+            } catch (error) {
+              console.error('Error sending email notifications after image upload:', error);
+            }
+          });
         }
-      } else if (updatedRequest && updatedRequest.images.length > 1) {
-        console.log(`Skipping email notification - this is image ${updatedRequest.images.length} of multiple uploads`);
       }
     }
 

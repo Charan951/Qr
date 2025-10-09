@@ -381,29 +381,9 @@ router.get('/email-action', async (req, res) => {
       );
       console.log('Notification sent to request user:', accessRequest.email);
 
-      // If HR approved via email, send success notifications to both admin and HR
+      // If HR approved via email, send success notifications to admin only (not to HR to avoid duplicates)
       if (role.toLowerCase() === 'hr' && action === 'approve') {
-        // Send success notification emails to all HR users (including the one who took action)
-        const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
-        console.log('Found HR users for success notification:', hrUsers.length);
-        
-        for (const hrUser of hrUsers) {
-          if (hrUser.email) {
-            const recipientName = hrUser.username || hrUser.email.split('@')[0];
-            await sendHRApprovalSuccessNotification(
-              hrUser.email,
-              recipientName,
-              'hr',
-              accessRequest.fullName,
-              accessRequest.email,
-              `Email Action (${email})`,
-              accessRequest
-            );
-            console.log(`HR approval success notification sent to HR: ${hrUser.email}`);
-          }
-        }
-
-        // Send success notification emails to all Admin users
+        // Send success notification emails to all Admin users only
         const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
         console.log('Found Admin users for success notification:', adminUsers.length);
         
@@ -901,53 +881,64 @@ router.post('/', async (req, res) => {
     res.status(201).json(responseData);
     console.log('Response sent successfully');
 
-    // Send email notifications asynchronously after response is sent
-    setImmediate(async () => {
+    // Set a timeout to send email notifications if no images are uploaded within 30 seconds
+    // This ensures that requests without images still get email notifications
+    setTimeout(async () => {
       try {
-        // Get all active HR users
-        const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+        // Check if any images have been uploaded
+        const requestWithImages = await AccessRequest.findById(accessRequest._id);
         
-        // Get all active Admin users  
-        const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
+        // Only send notifications if no images have been uploaded
+        // (if images were uploaded, notifications were already sent from images.js)
+        if (!requestWithImages.images || requestWithImages.images.length === 0) {
+          console.log('No images uploaded within timeout, sending email notifications...');
+          
+          // Get all active HR users
+          const hrUsers = await User.find({ role: 'hr', isActive: true }).select('email username');
+          
+          // Get all active Admin users  
+          const adminUsers = await User.find({ role: 'admin', isActive: true }).select('email username');
 
-        // Send notifications to all HR users
-        for (const hrUser of hrUsers) {
-          if (hrUser.email) {
-            try {
-              await sendNewAccessRequestNotification(
-                hrUser.email,
-                hrUser.username,
-                'HR',
-                accessRequest
-              );
-              console.log(`New request notification sent to HR: ${hrUser.email}`);
-            } catch (emailError) {
-              console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+          // Send notifications to all HR users
+          for (const hrUser of hrUsers) {
+            if (hrUser.email) {
+              try {
+                await sendNewAccessRequestNotification(
+                  hrUser.email,
+                  hrUser.username,
+                  'HR',
+                  requestWithImages
+                );
+                console.log(`New request notification sent to HR: ${hrUser.email}`);
+              } catch (emailError) {
+                console.error(`Failed to send email to HR ${hrUser.email}:`, emailError);
+              }
             }
           }
-        }
 
-        // Send notifications to all Admin users
-        for (const adminUser of adminUsers) {
-          if (adminUser.email) {
-            try {
-              await sendNewAccessRequestNotification(
-                adminUser.email,
-                adminUser.username,
-                'Admin',
-                accessRequest
-              );
-              console.log(`New request notification sent to Admin: ${adminUser.email}`);
-            } catch (emailError) {
-              console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+          // Send notifications to all Admin users
+          for (const adminUser of adminUsers) {
+            if (adminUser.email) {
+              try {
+                await sendNewAccessRequestNotification(
+                  adminUser.email,
+                  adminUser.username,
+                  'Admin',
+                  requestWithImages
+                );
+                console.log(`New request notification sent to Admin: ${adminUser.email}`);
+              } catch (emailError) {
+                console.error(`Failed to send email to Admin ${adminUser.email}:`, emailError);
+              }
             }
           }
+        } else {
+          console.log('Images were uploaded, email notifications already sent from image upload.');
         }
-
       } catch (error) {
-        console.error('Error sending email notifications after request creation:', error);
+        console.error('Error in timeout email notification check:', error);
       }
-    });
+    }, 30000); // 30 seconds timeout
 
   } catch (error) {
     console.error('Submit request error:', error);
