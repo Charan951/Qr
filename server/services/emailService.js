@@ -17,7 +17,18 @@ const formatDateTimeIST = (date) => {
 };
 
 // Create transporter using environment variables
-const isEmailEnabled = () => process.env.EMAIL_ENABLED === 'true';
+const isEmailEnabled = () => {
+  const emailEnabled = process.env.EMAIL_ENABLED === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // In production, email should be enabled by default unless explicitly disabled
+  if (isProduction && process.env.EMAIL_ENABLED !== 'false') {
+    return true;
+  }
+  
+  return emailEnabled;
+};
+
 const createTransporter = () => {
   // Skip actual SMTP in local/dev unless explicitly enabled
   if (!isEmailEnabled()) {
@@ -61,7 +72,8 @@ const createTransporter = () => {
     host: smtpHost,
     port: smtpPort,
     secure: smtpSecure,
-    hasAuth: !!(smtpUser && smtpPass)
+    hasAuth: !!(smtpUser && smtpPass),
+    nodeEnv: process.env.NODE_ENV
   });
 
   const transporterConfig = {
@@ -71,7 +83,21 @@ const createTransporter = () => {
     auth: {
       user: smtpUser,
       pass: smtpPass
-    }
+    },
+    // Additional options for better deployment compatibility
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates in some deployment environments
+    },
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 60000, // 60 seconds
+    // For Gmail specifically
+    ...(smtpHost === 'smtp.gmail.com' && {
+      service: 'gmail',
+      tls: {
+        rejectUnauthorized: true // Gmail requires proper certificates
+      }
+    })
   };
 
   return nodemailer.createTransport(transporterConfig);
@@ -125,8 +151,19 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
       // Verify transporter connection before sending
       if (attempt === 1) {
         console.log('Verifying SMTP connection...');
-        await transporter.verify();
-        console.log('SMTP connection verified successfully');
+        try {
+          await transporter.verify();
+          console.log('SMTP connection verified successfully');
+        } catch (verifyError) {
+          console.error('SMTP verification failed:', {
+            error: verifyError.message,
+            code: verifyError.code,
+            command: verifyError.command,
+            response: verifyError.response
+          });
+          // Continue anyway - some deployment environments have issues with verify()
+          console.log('Continuing with email send despite verification failure...');
+        }
       }
       
       const result = await transporter.sendMail(mailOptions);
@@ -759,24 +796,57 @@ const checkEmailHealth = async () => {
   try {
     console.log('Performing email health check...');
     
+    // Check if email is enabled
+    if (!isEmailEnabled()) {
+      return {
+        status: 'disabled',
+        message: 'Email service is disabled',
+        timestamp: new Date().toISOString()
+      };
+    }
+    
     // Validate configuration
     const configValidation = validateEmailConfig();
     if (!configValidation.valid) {
       return {
         status: 'error',
         message: 'Email configuration invalid',
-        issues: configValidation.issues
+        issues: configValidation.issues,
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
       };
     }
     
-    // Test SMTP connection
+    // Test SMTP connection with better error handling
     const transporter = createTransporter();
-    await transporter.verify();
+    try {
+      await transporter.verify();
+      console.log('Email health check passed - SMTP connection verified');
+    } catch (verifyError) {
+      console.warn('SMTP verification failed, but this might be normal in some deployment environments:', verifyError.message);
+      
+      // Try to send a test email instead of relying on verify()
+      const testMailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.EMAIL_USER, // Send to self
+        subject: 'Email Service Health Check',
+        text: 'This is a test email to verify email service functionality.'
+      };
+      
+      try {
+        await transporter.sendMail(testMailOptions);
+        console.log('Email health check passed - test email sent successfully');
+      } catch (sendError) {
+        throw new Error(`Both SMTP verification and test email failed: ${sendError.message}`);
+      }
+    }
     
-    console.log('Email health check passed');
     return {
       status: 'healthy',
       message: 'Email service is working correctly',
+      environment: process.env.NODE_ENV,
+      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+      smtpPort: process.env.SMTP_PORT || '587',
       timestamp: new Date().toISOString()
     };
   } catch (error) {
@@ -785,6 +855,7 @@ const checkEmailHealth = async () => {
       status: 'error',
       message: 'Email service is not working',
       error: error.message,
+      environment: process.env.NODE_ENV,
       timestamp: new Date().toISOString()
     };
   }
