@@ -77,6 +77,16 @@ const createTransporter = () => {
     nodeEnv: process.env.NODE_ENV
   });
 
+  // AGGRESSIVE PRODUCTION TIMEOUTS - Fail fast instead of hanging
+  const isProduction = process.env.NODE_ENV === 'production';
+  const aggressiveTimeouts = {
+    connectionTimeout: isProduction ? 3000 : 10000, // 3s prod, 10s dev
+    greetingTimeout: isProduction ? 2000 : 5000,    // 2s prod, 5s dev  
+    socketTimeout: isProduction ? 4000 : 10000,     // 4s prod, 10s dev
+  };
+
+  console.log(`🔥 Using ${isProduction ? 'AGGRESSIVE PRODUCTION' : 'DEVELOPMENT'} timeouts:`, aggressiveTimeouts);
+
   const transporterConfig = {
     host: smtpHost,
     port: smtpPort,
@@ -85,13 +95,11 @@ const createTransporter = () => {
       user: smtpUser,
       pass: smtpPass
     },
-    // Enhanced options for deployment environments
-    connectionTimeout: 120000, // 2 minutes for slow deployment networks
-    greetingTimeout: 60000, // 1 minute
-    socketTimeout: 120000, // 2 minutes
+    // AGGRESSIVE timeouts for production
+    ...aggressiveTimeouts,
     // TLS configuration for different environments
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === 'production' ? true : false,
+      rejectUnauthorized: isProduction ? true : false,
       ciphers: 'SSLv3'
     },
     // For Gmail specifically - override TLS settings
@@ -144,8 +152,8 @@ const validateEmailConfig = () => {
   return { valid: true, issues: [] };
 };
 
-// Timeout wrapper for email operations
-const withTimeout = (promise, timeoutMs = 30000) => {
+// AGGRESSIVE timeout wrapper - 5 seconds max for production
+const withTimeout = (promise, timeoutMs = 5000) => {
   return Promise.race([
     promise,
     new Promise((_, reject) => 
@@ -154,47 +162,65 @@ const withTimeout = (promise, timeoutMs = 30000) => {
   ]);
 };
 
-// Retry function for email sending
-const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
-  // Validate configuration before attempting to send
+// FINAL AGGRESSIVE email sending with immediate fallback
+const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
+  // In production, if email is disabled or config invalid, fail fast
+  if (!isEmailEnabled()) {
+    console.log('Email service disabled, skipping email send');
+    return { messageId: 'email-disabled', status: 'skipped' };
+  }
+
   const configValidation = validateEmailConfig();
   if (!configValidation.valid) {
+    console.error(`Email configuration invalid: ${configValidation.issues.join(', ')}`);
+    // In production, don't throw - just log and continue
+    if (process.env.NODE_ENV === 'production') {
+      return { messageId: 'config-invalid', status: 'skipped' };
+    }
     throw new Error(`Email configuration invalid: ${configValidation.issues.join(', ')}`);
   }
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Email attempt ${attempt}/${maxRetries} to: ${mailOptions.to}`);
-      console.log(`Email subject: ${mailOptions.subject}`);
-      console.log(`Email from: ${mailOptions.from}`);
+      console.log(`⚡ FAST email attempt ${attempt}/${maxRetries} to: ${mailOptions.to}`);
+      console.log(`📧 Subject: ${mailOptions.subject}`);
       
-      // Skip verification completely - just send the email directly
-      console.log('Sending email directly without verification...');
+      // PRODUCTION: Use 5-second timeout, DEV: Use 10-second timeout
+      const timeoutMs = process.env.NODE_ENV === 'production' ? 5000 : 10000;
+      console.log(`🚀 Sending with ${timeoutMs}ms timeout...`);
       
-      // Use timeout wrapper to prevent hanging
+      // Use aggressive timeout wrapper
       const result = await withTimeout(
         transporter.sendMail(mailOptions),
-        30000 // 30 second timeout
+        timeoutMs
       );
       
-      console.log(`Email sent successfully on attempt ${attempt}:`, result.messageId);
+      console.log(`✅ Email sent successfully on attempt ${attempt}:`, result.messageId);
       return result;
     } catch (error) {
-      console.error(`Email attempt ${attempt}/${maxRetries} failed:`, {
+      console.error(`❌ Email attempt ${attempt}/${maxRetries} failed:`, {
         error: error.message,
         code: error.code,
-        command: error.command,
-        response: error.response,
-        responseCode: error.responseCode
+        timeout: error.message.includes('timed out')
       });
       
+      // In production, if it's a timeout and we're on the last attempt, just log and return
+      if (process.env.NODE_ENV === 'production' && attempt === maxRetries && error.message.includes('timed out')) {
+        console.log('🔥 PRODUCTION: Email timeout - continuing without email (non-blocking)');
+        return { messageId: 'timeout-skipped', status: 'timeout', error: error.message };
+      }
+      
       if (attempt === maxRetries) {
+        // In production, don't throw - return error info
+        if (process.env.NODE_ENV === 'production') {
+          return { messageId: 'failed', status: 'error', error: error.message };
+        }
         throw error;
       }
       
-      // Wait before retry (shorter wait time)
-      const waitTime = attempt * 2000; // 2s, 4s, 6s
-      console.log(`Waiting ${waitTime}ms before retry...`);
+      // Shorter wait time - 1s, 2s
+      const waitTime = attempt * 1000;
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
