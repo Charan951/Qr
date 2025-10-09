@@ -144,6 +144,16 @@ const validateEmailConfig = () => {
   return { valid: true, issues: [] };
 };
 
+// Timeout wrapper for email operations
+const withTimeout = (promise, timeoutMs = 30000) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
 // Retry function for email sending
 const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
   // Validate configuration before attempting to send
@@ -158,27 +168,15 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
       console.log(`Email subject: ${mailOptions.subject}`);
       console.log(`Email from: ${mailOptions.from}`);
       
-      // Verify transporter connection before sending (skip in production to avoid timeouts)
-      if (attempt === 1 && process.env.NODE_ENV !== 'production') {
-        console.log('Verifying SMTP connection...');
-        try {
-          await transporter.verify();
-          console.log('SMTP connection verified successfully');
-        } catch (verifyError) {
-          console.error('SMTP verification failed:', {
-            error: verifyError.message,
-            code: verifyError.code,
-            command: verifyError.command,
-            response: verifyError.response
-          });
-          // Continue anyway - some deployment environments have issues with verify()
-          console.log('Continuing with email send despite verification failure...');
-        }
-      } else if (attempt === 1 && process.env.NODE_ENV === 'production') {
-        console.log('Skipping SMTP verification in production environment to avoid timeouts');
-      }
+      // Skip verification completely - just send the email directly
+      console.log('Sending email directly without verification...');
       
-      const result = await transporter.sendMail(mailOptions);
+      // Use timeout wrapper to prevent hanging
+      const result = await withTimeout(
+        transporter.sendMail(mailOptions),
+        30000 // 30 second timeout
+      );
+      
       console.log(`Email sent successfully on attempt ${attempt}:`, result.messageId);
       return result;
     } catch (error) {
@@ -194,8 +192,8 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 3) => {
         throw error;
       }
       
-      // Wait before retry (exponential backoff)
-      const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+      // Wait before retry (shorter wait time)
+      const waitTime = attempt * 2000; // 2s, 4s, 6s
       console.log(`Waiting ${waitTime}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
