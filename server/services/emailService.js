@@ -77,15 +77,19 @@ const createTransporter = () => {
     nodeEnv: process.env.NODE_ENV
   });
 
-  // AGGRESSIVE PRODUCTION TIMEOUTS - Fail fast instead of hanging
-  const isProduction = process.env.NODE_ENV === 'production';
+  // Environment-aware timeout selection:
+  // Treat environments pointing to localhost as development even if NODE_ENV is 'production'.
+  const baseUrl = process.env.BASE_URL || '';
+  const nodeEnv = process.env.NODE_ENV;
+  const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
   const aggressiveTimeouts = {
-    connectionTimeout: isProduction ? 3000 : 10000, // 3s prod, 10s dev
-    greetingTimeout: isProduction ? 2000 : 5000,    // 2s prod, 5s dev  
-    socketTimeout: isProduction ? 4000 : 10000,     // 4s prod, 10s dev
+    // Use more generous timeouts for any local/dev setup to avoid false ETIMEDOUT
+    connectionTimeout: isProductionLike ? 3000 : 15000,
+    greetingTimeout: isProductionLike ? 2000 : 8000,
+    socketTimeout: isProductionLike ? 4000 : 15000,
   };
 
-  console.log(`🔥 Using ${isProduction ? 'AGGRESSIVE PRODUCTION' : 'DEVELOPMENT'} timeouts:`, aggressiveTimeouts);
+  console.log(`🔥 Using ${isProductionLike ? 'AGGRESSIVE PRODUCTION' : 'DEVELOPMENT'} timeouts:`, aggressiveTimeouts);
 
   const transporterConfig = {
     host: smtpHost,
@@ -956,4 +960,17 @@ module.exports = {
   formatDateTimeIST,
   validateEmailConfig,
   checkEmailHealth,
+  // Dev helper: send a simple test email
+  sendTestEmail: async (to) => {
+    const transporter = createTransporter();
+    const recipient = to || process.env.EMAIL_USER;
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: recipient,
+      subject: 'Dev Test Email - Access Request System',
+      text: 'This is a development test email to validate SMTP sending.'
+    };
+    const result = await sendEmailWithRetry(transporter, mailOptions);
+    return result;
+  },
 };
