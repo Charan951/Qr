@@ -63,10 +63,14 @@ const createTransporter = () => {
     console.log('Sanitized SMTP/EMAIL app password by removing whitespace groups.');
   }
 
-  // Default SMTP configuration for production
+  // Default SMTP configuration
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-  // Fix: Port 587 should use STARTTLS (secure: false), only port 465 uses SSL (secure: true)
+  const baseUrl = process.env.BASE_URL || '';
+  const nodeEnv = process.env.NODE_ENV;
+  const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
+  const envPortRaw = parseInt(process.env.SMTP_PORT);
+  const smtpPort = Number.isInteger(envPortRaw) ? envPortRaw : (isProductionLike ? 465 : 587);
+  // Enforce TLS on 465 for production
   const smtpSecure = smtpPort === 465;
 
   console.log('Final SMTP config:', {
@@ -79,9 +83,6 @@ const createTransporter = () => {
 
   // Environment-aware timeout selection:
   // Treat environments pointing to localhost as development even if NODE_ENV is 'production'.
-  const baseUrl = process.env.BASE_URL || '';
-  const nodeEnv = process.env.NODE_ENV;
-  const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
   const selectedTimeouts = isProductionLike
     ? { connectionTimeout: 12000, greetingTimeout: 8000, socketTimeout: 15000 }
     : { connectionTimeout: 15000, greetingTimeout: 8000, socketTimeout: 15000 };
@@ -143,12 +144,11 @@ const createTransporterWithOverrides = (overrides = {}) => {
   const smtpPass = rawSmtpPass ? rawSmtpPass.replace(/\s+/g, '').trim() : '';
 
   const smtpHost = overrides.host || process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = overrides.port || parseInt(process.env.SMTP_PORT) || 587;
-  const smtpSecure = typeof overrides.secure === 'boolean' ? overrides.secure : smtpPort === 465;
-
-  const baseUrl = process.env.BASE_URL || '';
   const nodeEnv = process.env.NODE_ENV;
+  const baseUrl = process.env.BASE_URL || '';
   const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
+  const smtpPort = overrides.port || parseInt(process.env.SMTP_PORT) || (isProductionLike ? 465 : 587);
+  const smtpSecure = typeof overrides.secure === 'boolean' ? overrides.secure : smtpPort === 465;
   const selectedTimeouts = isProductionLike
     ? { connectionTimeout: 12000, greetingTimeout: 8000, socketTimeout: 15000 }
     : { connectionTimeout: 15000, greetingTimeout: 8000, socketTimeout: 15000 };
@@ -263,12 +263,11 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
     const envSecure = typeof envSecureRaw === 'string' ? envSecureRaw === 'true' : (envPort === 465);
 
     const candidates = [];
+    // Only use 465 (TLS) in production
     if (envPort) {
       candidates.push({ port: envPort, secure: envSecure });
     }
-    // Try implicit TLS 465 first, then STARTTLS 587
     if (!candidates.some(c => c.port === 465)) candidates.push({ port: 465, secure: true });
-    if (!candidates.some(c => c.port === 587)) candidates.push({ port: 587, secure: false });
 
     let lastError = null;
     for (const cand of candidates) {
@@ -1012,7 +1011,7 @@ const checkEmailHealth = async () => {
       message: 'Email service is working correctly',
       environment: process.env.NODE_ENV,
       smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
-      smtpPort: process.env.SMTP_PORT || '587',
+      smtpPort: process.env.SMTP_PORT || (process.env.NODE_ENV === 'production' ? '465' : '587'),
       timestamp: new Date().toISOString()
     };
   } catch (error) {
