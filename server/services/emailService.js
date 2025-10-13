@@ -82,14 +82,11 @@ const createTransporter = () => {
   const baseUrl = process.env.BASE_URL || '';
   const nodeEnv = process.env.NODE_ENV;
   const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
-  const aggressiveTimeouts = {
-    // Use more generous timeouts for any local/dev setup to avoid false ETIMEDOUT
-    connectionTimeout: isProductionLike ? 3000 : 15000,
-    greetingTimeout: isProductionLike ? 2000 : 8000,
-    socketTimeout: isProductionLike ? 4000 : 15000,
-  };
+  const selectedTimeouts = isProductionLike
+    ? { connectionTimeout: 12000, greetingTimeout: 8000, socketTimeout: 15000 }
+    : { connectionTimeout: 15000, greetingTimeout: 8000, socketTimeout: 15000 };
 
-  console.log(`🔥 Using ${isProductionLike ? 'AGGRESSIVE PRODUCTION' : 'DEVELOPMENT'} timeouts:`, aggressiveTimeouts);
+  console.log(`🔥 Using ${isProductionLike ? 'PRODUCTION' : 'DEVELOPMENT'} timeouts:`, selectedTimeouts);
 
   const transporterConfig = {
     host: smtpHost,
@@ -99,8 +96,8 @@ const createTransporter = () => {
       user: smtpUser,
       pass: smtpPass
     },
-    // AGGRESSIVE timeouts for production
-    ...aggressiveTimeouts,
+    // Environment-appropriate timeouts
+    ...selectedTimeouts,
     // TLS configuration for different environments
     tls: {
       rejectUnauthorized: false, // More lenient for production compatibility
@@ -124,6 +121,62 @@ const createTransporter = () => {
     ignoreTLS: false,
     requireTLS: false,
     // Retry settings
+    retryDelay: 1000,
+    maxRetries: 3
+  };
+
+  return nodemailer.createTransport(transporterConfig);
+};
+
+// Create transporter with overrides (used for production fallbacks)
+const createTransporterWithOverrides = (overrides = {}) => {
+  if (!isEmailEnabled()) {
+    return {
+      sendMail: async () => ({ accepted: [], rejected: [], messageId: null }),
+      verify: async () => true
+    };
+  }
+
+  const rawSmtpUser = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const rawSmtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  const smtpUser = rawSmtpUser ? rawSmtpUser.trim() : '';
+  const smtpPass = rawSmtpPass ? rawSmtpPass.replace(/\s+/g, '').trim() : '';
+
+  const smtpHost = overrides.host || process.env.SMTP_HOST || 'smtp.gmail.com';
+  const smtpPort = overrides.port || parseInt(process.env.SMTP_PORT) || 587;
+  const smtpSecure = typeof overrides.secure === 'boolean' ? overrides.secure : smtpPort === 465;
+
+  const baseUrl = process.env.BASE_URL || '';
+  const nodeEnv = process.env.NODE_ENV;
+  const isProductionLike = nodeEnv === 'production' && !baseUrl.includes('localhost');
+  const selectedTimeouts = isProductionLike
+    ? { connectionTimeout: 12000, greetingTimeout: 8000, socketTimeout: 15000 }
+    : { connectionTimeout: 15000, greetingTimeout: 8000, socketTimeout: 15000 };
+
+  console.log('🔧 Override SMTP config:', { host: smtpHost, port: smtpPort, secure: smtpSecure });
+  console.log(`⏱️ Override timeouts (${isProductionLike ? 'PRODUCTION' : 'DEVELOPMENT'}):`, selectedTimeouts);
+
+  const transporterConfig = {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
+    auth: { user: smtpUser, pass: smtpPass },
+    ...selectedTimeouts,
+    tls: {
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3'
+    },
+    ...(smtpHost === 'smtp.gmail.com' && {
+      service: 'gmail',
+      requireTLS: true,
+      tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' }
+    }),
+    pool: false,
+    maxConnections: 1,
+    maxMessages: 1,
+    rateLimit: false,
+    ignoreTLS: false,
+    requireTLS: false,
     retryDelay: 1000,
     maxRetries: 3
   };
@@ -202,30 +255,54 @@ const sendEmailWithRetry = async (transporter, mailOptions, maxRetries = 2) => {
       return await sendWithSendGrid(mailOptions);
     }
     
-    // Fallback: Try SMTP with production settings
+    // Fallback: Try SMTP with production settings and port fallbacks
     console.log('📧 Attempting SMTP with production settings');
-    try {
-      const result = await withTimeout(transporter.sendMail(mailOptions), 10000);
-      console.log('✅ Production email sent successfully:', result.messageId);
-      return result;
-    } catch (error) {
-      console.error('❌ Production SMTP failed:', error.message);
-      // Log email details for manual follow-up
-      console.log('📧 EMAIL DETAILS FOR MANUAL PROCESSING:', {
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-        from: mailOptions.from,
-        timestamp: new Date().toISOString(),
-        status: 'FAILED_LOGGED_FOR_MANUAL_PROCESSING'
-      });
-      return { 
-        messageId: `failed-${Date.now()}`, 
-        status: 'failed_logged',
-        accepted: [],
-        rejected: [mailOptions.to],
-        response: 'Email failed but logged for manual processing'
-      };
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const envPort = parseInt(process.env.SMTP_PORT || '');
+    const envSecureRaw = process.env.SMTP_SECURE;
+    const envSecure = typeof envSecureRaw === 'string' ? envSecureRaw === 'true' : (envPort === 465);
+
+    const candidates = [];
+    if (envPort) {
+      candidates.push({ port: envPort, secure: envSecure });
     }
+    // Try implicit TLS 465 first, then STARTTLS 587
+    if (!candidates.some(c => c.port === 465)) candidates.push({ port: 465, secure: true });
+    if (!candidates.some(c => c.port === 587)) candidates.push({ port: 587, secure: false });
+
+    let lastError = null;
+    for (const cand of candidates) {
+      try {
+        console.log(`🔄 SMTP fallback attempt: host=${host}, port=${cand.port}, secure=${cand.secure}`);
+        const t = createTransporterWithOverrides({ host, port: cand.port, secure: cand.secure });
+        const result = await withTimeout(t.sendMail(mailOptions), 15000);
+        console.log('✅ Production email sent successfully via SMTP:', result.messageId);
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ SMTP attempt on port ${cand.port} failed:`, {
+          message: error.message,
+          code: error.code
+        });
+        // Continue to next candidate
+      }
+    }
+
+    console.error('❌ Production SMTP failed across all fallbacks:', lastError ? lastError.message : 'Unknown error');
+    console.log('📧 EMAIL DETAILS FOR MANUAL PROCESSING:', {
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      from: mailOptions.from,
+      timestamp: new Date().toISOString(),
+      status: 'FAILED_LOGGED_FOR_MANUAL_PROCESSING'
+    });
+    return {
+      messageId: `failed-${Date.now()}`,
+      status: 'failed_logged',
+      accepted: [],
+      rejected: [mailOptions.to],
+      response: 'Email failed but logged for manual processing'
+    };
   }
   
   // DEVELOPMENT/LOCAL MODE: Actually send emails
