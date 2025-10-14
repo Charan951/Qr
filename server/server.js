@@ -1,56 +1,79 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const path = require('path');
+const https = require('https');
+const fs = require('fs');
 require('dotenv').config();
 
 // Environment variables loaded
-
 const app = express();
+
+// // Read the generated certificate files
+// const options = {
+//     key: fs.readFileSync('localhost-key.pem'),
+//     cert: fs.readFileSync('localhost.pem')
+// };
+
+// // Use a different port for HTTPS
+// const HTTPS_PORT = 3443; 
+
+// // Create the HTTPS server
+// https.createServer(options, app).listen(HTTPS_PORT, () => {
+//     console.log(`Server running securely on https://localhost:${HTTPS_PORT}`);
+// });
+
+
+// === ✅ UNIVERSAL CORS (working for localhost, LAN, public IP, and Vercel) ===
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  // Allow localhost, LAN IPs, your public IP, and Vercel domains
+  const allowedPatterns = [
+    /^http:\/\/localhost(:\d+)?$/,              // localhost (any port)
+    /^http:\/\/127\.0\.0\.1(:\d+)?$/,           // 127.0.0.1 (any port)
+    /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,     // LAN IPs
+    /^http:\/\/183\.83\.218\.240(:\d+)?$/,      // your public IP
+    /^https:\/\/qr-oj5t.*\.vercel\.app$/,       // all vercel preview links
+  ];
+
+  const allowedExact = [
+    'http://183.83.218.240:3000',
+    'https://qr-oj5t.vercel.app',
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL,
+  ].filter(Boolean);
+
+  const isAllowed =
+    allowedExact.includes(origin) ||
+    allowedPatterns.some((regex) => regex.test(origin));
+
+  if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+  );
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With, Accept, Origin'
+  );
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve logo from client public directory
 app.use('/logo.png', express.static(path.join(__dirname, '../client/public/logo.png')));
-
-// Middleware
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000', 
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'https://qr-oj5t.vercel.app',
-      'https://qr-oj5t-git-master-charan951s-projects.vercel.app',
-      'https://qr-oj5t-charan951s-projects.vercel.app',
-      process.env.FRONTEND_URL,
-      process.env.CLIENT_URL
-    ].filter(Boolean);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      // In production, allow email action requests from any origin
-      if (process.env.NODE_ENV === 'production') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
-  },
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  optionsSuccessStatus: 200
-}));
-
-// Add explicit OPTIONS handling for preflight requests
-app.options('*', cors());
 
 // Body parsing middleware - skip only for image upload routes
 app.use('/api/images/upload', (req, res, next) => {
@@ -80,7 +103,7 @@ const connectWithRetry = async () => {
       bufferCommands: false,
       maxPoolSize: 10,
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
     });
     console.log('MongoDB connected successfully');
 
@@ -89,21 +112,23 @@ const connectWithRetry = async () => {
       await Promise.all([
         User.createCollection(),
         AccessRequest.createCollection(),
-        Message.createCollection()
+        Message.createCollection(),
       ]);
-      // Sync indexes to match schema definitions (drops mismatched indexes and recreates as needed)
+
+      // Sync indexes to match schema definitions
       await Promise.all([
         User.syncIndexes(),
         AccessRequest.syncIndexes(),
-        Message.syncIndexes()
+        Message.syncIndexes(),
       ]);
+
       console.log('Verified MongoDB collections and indexes are initialized');
     } catch (initErr) {
       console.error('Error initializing collections/indexes:', initErr.message);
     }
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     connectWithRetry();
   }
 };
@@ -114,7 +139,7 @@ connectWithRetry();
 if (process.env.NODE_ENV === 'production') {
   // Trust proxy for production deployment
   app.set('trust proxy', 1);
-  
+
   // Add security headers for production
   app.use((req, res, next) => {
     res.header('X-Content-Type-Options', 'nosniff');
@@ -122,7 +147,7 @@ if (process.env.NODE_ENV === 'production') {
     res.header('X-XSS-Protection', '1; mode=block');
     next();
   });
-  
+
   // Enhanced logging for production
   app.use((req, res, next) => {
     if (req.path.includes('/email-action')) {
@@ -141,13 +166,16 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    database:
+      mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     memory: {
-      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-    }
+      used:
+        Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      total:
+        Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
+    },
   };
-  
+
   res.status(200).json(healthStatus);
 });
 
@@ -156,7 +184,7 @@ app.get('/api/health/email', async (req, res) => {
   try {
     const { checkEmailHealth } = require('./services/emailService');
     const emailHealth = await checkEmailHealth();
-    
+
     const statusCode = emailHealth.status === 'healthy' ? 200 : 500;
     res.status(statusCode).json(emailHealth);
   } catch (error) {
@@ -165,7 +193,7 @@ app.get('/api/health/email', async (req, res) => {
       status: 'error',
       message: 'Failed to check email health',
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -182,7 +210,6 @@ app.use('/api/images', require('./routes/images'));
 
 // Catch-all handler for undefined API routes (must be last)
 app.use('/api/*', (req, res) => {
-  // Skip if response has already been sent (for HTML responses from email-action)
   if (res.headersSent) {
     return;
   }
