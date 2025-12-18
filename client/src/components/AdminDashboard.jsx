@@ -564,7 +564,6 @@ const AdminDashboard = () => {
                                   transform: 'scale(1.1)'
                                 }
                               }}
-                            }}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
