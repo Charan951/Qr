@@ -13,7 +13,7 @@ const seedAdminUsers = async () => {
     await User.deleteMany({ role: 'admin' });
     console.log('Cleared existing admin users');
 
-    // Create admin user
+    // Create admin userWFGRE
     const adminUser = new User({
       username: 'speshway',
       email: 'pcharan214@gmail.com',
