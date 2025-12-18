@@ -62,7 +62,6 @@ const HRManagement = () => {
         setHrUsers(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching HR users:', error);
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'Failed to fetch HR users'
@@ -112,7 +111,6 @@ const HRManagement = () => {
         fetchHRUsers();
       }
     } catch (error) {
-      console.error('Error deleting HR user:', error);
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'Failed to delete HR user'
@@ -123,7 +121,6 @@ const HRManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Client-side validation
     if (!editMode && formData.password.length < 6) {
       setMessage({
         type: 'error',
@@ -145,14 +142,12 @@ const HRManagement = () => {
       let response;
 
       if (editMode) {
-        // Update user
         const updateData = {
           username: formData.username,
           email: formData.email,
           isActive: formData.isActive
         };
         
-        // Only include password if it's provided
         if (formData.password.trim()) {
           updateData.password = formData.password;
         }
@@ -163,7 +158,6 @@ const HRManagement = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
-        // Create new user
         response = await axios.post(
           getApiUrl(API_ENDPOINTS.ADMIN_HR_USERS),
           formData,
@@ -180,7 +174,6 @@ const HRManagement = () => {
         fetchHRUsers();
       }
     } catch (error) {
-      console.error('Error saving HR user:', error);
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'Failed to save HR user'
@@ -255,7 +248,6 @@ const HRManagement = () => {
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <People sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
@@ -282,7 +274,6 @@ const HRManagement = () => {
         </Alert>
       )}
 
-      {/* HR Users Table */}
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
@@ -300,7 +291,6 @@ const HRManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Create/Edit User Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editMode ? 'Edit HR User' : 'Create New HR User'}
@@ -371,3 +361,4 @@ const HRManagement = () => {
 };
 
 export default HRManagement;
+

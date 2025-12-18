@@ -23,7 +23,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import logo from '../assets/logo.png';
 
-// Animation variants
 const cardVariants = {
   hidden: { 
     opacity: 0, 
@@ -148,7 +147,6 @@ const HRLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if HR is already logged in
     const token = localStorage.getItem('hrToken');
     if (token) {
       navigate('/hr/dashboard');
@@ -173,11 +171,8 @@ const HRLogin = () => {
         role: 'hr'
       });
 
-      // Store token and user info
       localStorage.setItem('hrToken', response.data.token);
       localStorage.setItem('hrUser', JSON.stringify(response.data.user));
-
-      // Redirect to dashboard
       navigate('/hr/dashboard');
 
     } catch (error) {

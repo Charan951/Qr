@@ -32,7 +32,6 @@ const EmailAction = () => {
       }
 
       try {
-        // Call the backend API endpoint
         const response = await fetch(`${getBaseUrl()}/api/requests/email-action?token=${token}`, {
           method: 'GET',
           headers: {
@@ -41,10 +40,7 @@ const EmailAction = () => {
         });
 
         if (response.ok) {
-          // If successful, parse the HTML response to extract information
           const htmlText = await response.text();
-          
-          // Extract action type from the HTML (approved/rejected)
           const isApproved = htmlText.includes('Request Approved');
           const isRejected = htmlText.includes('Request Rejected');
           
@@ -58,7 +54,6 @@ const EmailAction = () => {
             setError('Unable to determine the action result.');
           }
         } else {
-          // Handle different error status codes
           const errorText = await response.text();
           
           if (response.status === 400) {

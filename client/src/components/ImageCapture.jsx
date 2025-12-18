@@ -39,7 +39,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
   };
 
   const handleImageCapture = (imageData) => {
-    // Store the captured image data for later upload
     if (onImageCapture) {
       onImageCapture(imageData);
     }
@@ -52,14 +51,12 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
     setUploadStatus('Uploading...');
 
     try {
-      // If we have a requestId, upload immediately
       if (requestId) {
         const file = dataURLtoFile(capturedImage, `capture-${Date.now()}.jpg`);
         const formData = new FormData();
         formData.append('image', file);
         formData.append('requestId', requestId);
 
-        // Try to get token from different sources (admin, hr, or regular token)
         const token = localStorage.getItem('adminToken') || 
                      localStorage.getItem('hrToken') || 
                      localStorage.getItem('token');
@@ -79,7 +76,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
           if (onImageCapture) {
             onImageCapture(data.imageUrl);
           }
-          // Reset after successful upload
           setTimeout(() => {
             setCapturedImage(null);
             setUploadStatus('');
@@ -88,7 +84,6 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
           setUploadStatus(`Upload failed: ${data.message || 'Unknown error'}`);
         }
       } else {
-        // If no requestId, just store the image data for later upload
         handleImageCapture(capturedImage);
         setUploadStatus('Image captured! Will be uploaded with form submission.');
         setTimeout(() => {
@@ -191,3 +186,4 @@ const ImageCapture = ({ onImageCapture, requestId }) => {
 };
 
 export default ImageCapture;
+

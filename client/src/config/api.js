@@ -1,14 +1,20 @@
 // API Configuration
+const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
 const API_CONFIG = {
   // Dynamic Base URL - works for both development and production
   BASE_URL: (() => {
     // Check if we have a custom API URL in environment
-    if (process.env.REACT_APP_API_BASE_URL) {
-      return process.env.REACT_APP_API_BASE_URL;
+    const envApiBase =
+      (viteEnv && viteEnv.VITE_API_BASE_URL) ||
+      (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL);
+    if (envApiBase) {
+      return envApiBase;
     }
     
     // In production, use the environment variable or fallback to production URL
-    if (process.env.NODE_ENV === 'production') {
+    const mode = (viteEnv && viteEnv.MODE) ||
+      (typeof process !== 'undefined' && process.env && process.env.NODE_ENV);
+    if (mode === 'production') {
       return 'https://qr-nk38.onrender.com';
     }
     

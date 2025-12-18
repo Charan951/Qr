@@ -44,13 +44,12 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import ImageViewer from './ImageViewer';
-import MessageCenter from './MessageCenter';
+import ImageViewer from './ImageViewer.jsx';
+import MessageCenter from './MessageCenter.jsx';
 import { Badge } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
 
-// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -128,10 +127,6 @@ const buttonVariants = {
   }
 };
 
-
-
-
-
 const HRDashboard = () => {
   const [currentView, setCurrentView] = useState('dashboard');
   const [unreadCount, setUnreadCount] = useState(0);
@@ -163,7 +158,6 @@ const HRDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check authentication
     const token = localStorage.getItem('hrToken');
     if (!token) {
       navigate('/hr/login');
@@ -192,7 +186,7 @@ const HRDashboard = () => {
           'Content-Type': 'application/json',
         },
         params,
-        timeout: 10000, // 10 second timeout
+        timeout: 10000,
       });
 
       setRequests(response.data.data);
@@ -225,10 +219,7 @@ const HRDashboard = () => {
   };
 
   const fetchStats = async () => {
-    // Stats are now fetched with requests, so this function is no longer needed
-    // but keeping it for compatibility
     try {
-      // Stats are already set in fetchRequests
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -283,9 +274,8 @@ const HRDashboard = () => {
         ...(actionType === 'rejected' && { rejectionReason: rejectionReason.trim() })
       };
 
-      // Use a timeout to ensure the request doesn't hang
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await axios.patch(
         buildApiUrl(API_ENDPOINTS.HR_REQUESTS, selectedRequest._id),
@@ -305,7 +295,6 @@ const HRDashboard = () => {
         });
         setActionDialogOpen(false);
         
-        // Optimistically update the UI before refetching
         setRequests(prevRequests => 
           prevRequests.map(req => 
             req._id === selectedRequest._id 
@@ -314,7 +303,6 @@ const HRDashboard = () => {
           )
         );
         
-        // Fetch updated data in the background
         setTimeout(() => {
           fetchRequests();
         }, 100);
@@ -379,8 +367,8 @@ const HRDashboard = () => {
         });
         setBulkActionDialogOpen(false);
         setSelectedRows([]);
-        fetchRequests(); // Refresh the data
-        fetchStats(); // Refresh stats
+        fetchRequests();
+        fetchStats();
       }
     } catch (error) {
       console.error('Error updating requests:', error);
@@ -495,7 +483,6 @@ const HRDashboard = () => {
       animate="visible"
     >
       <Box>
-        {/* Header */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -539,13 +526,11 @@ const HRDashboard = () => {
           )}
         </AnimatePresence>
 
-      {/* Navigation Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentView} onChange={(e, newValue) => {
           setCurrentView(newValue);
-          // Refresh unread count when switching to messages tab
           if (newValue === 'messages') {
-            setTimeout(() => fetchUnreadCount(), 500); // Small delay to allow MessageCenter to mark messages as read
+            setTimeout(() => fetchUnreadCount(), 500);
           }
         }}>
           <Tab 
@@ -569,7 +554,6 @@ const HRDashboard = () => {
 
       {currentView === 'dashboard' ? (
         <>
-        {/* HR Action Notice */}
         <motion.div
           variants={cardVariants}
           initial="hidden"
@@ -582,7 +566,6 @@ const HRDashboard = () => {
           </Alert>
         </motion.div>
 
-        {/* Statistics Cards */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -680,7 +663,6 @@ const HRDashboard = () => {
           </Grid>
         </motion.div>
 
-      {/* Filters */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -743,7 +725,6 @@ const HRDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Requests Table */}
       <Card>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -794,13 +775,11 @@ const HRDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* View Request Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Request Details</DialogTitle>
         <DialogContent>
           {selectedRequest && (
             <Grid container spacing={2}>
-              {/* Always show request ID and status */}
               {selectedRequest.requestId && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Request ID:</Typography>
@@ -812,7 +791,6 @@ const HRDashboard = () => {
                 {getStatusChip(selectedRequest.status)}
               </Grid>
               
-              {/* Basic required fields - only show if filled */}
               {selectedRequest.fullName && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Name:</Typography>
@@ -844,7 +822,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show reference fields only if they exist */}
               {selectedRequest.referenceName && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Reference Name:</Typography>
@@ -858,7 +835,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show training fields only if they exist */}
               {selectedRequest.trainingName && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Training Name:</Typography>
@@ -872,7 +848,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show department name for training and assignment */}
               {selectedRequest.departmentName && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Department Name:</Typography>
@@ -880,7 +855,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show visitor description */}
               {selectedRequest.visitorDescription && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Visitor Description:</Typography>
@@ -888,7 +862,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show client fields */}
               {selectedRequest.companyName && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Company Name:</Typography>
@@ -902,7 +875,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Always show submitted date */}
               {selectedRequest.submittedDate && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2">Submitted:</Typography>
@@ -910,7 +882,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show optional fields */}
               {selectedRequest.additionalNotes && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2">Additional Notes:</Typography>
@@ -930,7 +901,6 @@ const HRDashboard = () => {
                 </Grid>
               )}
               
-              {/* Images Section */}
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 2 }}>Images:</Typography>
                 <ImageViewer requestId={selectedRequest._id} />
@@ -963,7 +933,6 @@ const HRDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Action Confirmation Dialog */}
       <Dialog open={actionDialogOpen} onClose={() => setActionDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {actionType === 'approved' ? 'Approve Request' : 'Reject Request'}
@@ -1011,7 +980,6 @@ const HRDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Bulk Action Confirmation Dialog */}
       <Dialog open={bulkActionDialogOpen} onClose={() => setBulkActionDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {bulkActionType === 'approved' ? 'Bulk Approve Requests' : 'Bulk Reject Requests'}

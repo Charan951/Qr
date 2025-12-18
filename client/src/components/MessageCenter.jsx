@@ -122,7 +122,6 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
     fetchUnreadCount();
   }, [fetchMessages, fetchUnreadCount]);
 
-  // Auto-mark all messages as read when MessageCenter opens
   useEffect(() => {
     const markAllAsReadOnOpen = async () => {
       try {
@@ -130,10 +129,8 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
         await axios.patch(getApiUrl('/api/messages/mark-all-read'), {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        // Refresh messages and unread count after marking as read
         await fetchMessages();
         await fetchUnreadCount();
-        // Notify parent component to update badge
         if (onUnreadCountChange) {
           onUnreadCountChange();
         }
@@ -143,7 +140,7 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
     };
 
     markAllAsReadOnOpen();
-  }, [fetchMessages, fetchUnreadCount, getAuthToken, onUnreadCountChange]); // Run only once when component mounts
+  }, [fetchMessages, fetchUnreadCount, getAuthToken, onUnreadCountChange]);
 
   const markAsRead = async (messageId) => {
     try {
@@ -152,15 +149,12 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Update the message in the local state
       setMessages(prev => prev.map(msg => 
         msg._id === messageId ? { ...msg, isRead: true } : msg
       ));
       
-      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
       
-      // Notify parent component
       if (onUnreadCountChange) {
         onUnreadCountChange();
       }
@@ -399,7 +393,6 @@ const MessageCenter = ({ userRole, onClose, onUnreadCountChange }) => {
         </CardContent>
       </Card>
 
-      {/* Message Detail Dialog */}
       <Dialog 
         open={viewDialogOpen} 
         onClose={() => setViewDialogOpen(false)}

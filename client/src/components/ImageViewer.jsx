@@ -14,7 +14,6 @@ const ImageViewer = ({ requestId, images: propImages }) => {
       setLoading(true);
       setError('');
       
-      // Try to get token from different sources (admin, hr, or regular token)
       const token = localStorage.getItem('adminToken') || 
                    localStorage.getItem('hrToken') || 
                    localStorage.getItem('token');
@@ -54,7 +53,6 @@ const ImageViewer = ({ requestId, images: propImages }) => {
 
     try {
       const filename = imageUrl.split('/').pop();
-      // Try to get token from different sources (admin, hr, or regular token)
       const token = localStorage.getItem('adminToken') || 
                    localStorage.getItem('hrToken') || 
                    localStorage.getItem('token');
@@ -158,7 +156,6 @@ const ImageViewer = ({ requestId, images: propImages }) => {
         </div>
       )}
 
-      {/* Image Modal */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={closeImageModal}>
           <div className="max-w-4xl max-h-full p-4">

@@ -23,7 +23,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getApiUrl, API_ENDPOINTS } from '../config/api';
 import logo from '../assets/logo.png';
 
-// Animation variants
 const cardVariants = {
   hidden: { 
     opacity: 0, 
@@ -148,7 +147,6 @@ const AdminLogin = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if admin is already logged in
     const token = localStorage.getItem('adminToken');
     if (token) {
       navigate('/admin/dashboard');
@@ -173,13 +171,9 @@ const AdminLogin = () => {
         role: 'admin'
       });
 
-      // Store token and user info
       localStorage.setItem('adminToken', response.data.token);
       localStorage.setItem('adminUser', JSON.stringify(response.data.user));
-
-      // Redirect to dashboard
       navigate('/admin/dashboard');
-
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed. Please try again.');
     } finally {
@@ -275,7 +269,7 @@ const AdminLogin = () => {
                         fontSize: { xs: '0.75rem', sm: '0.875rem' }
                       }}
                     >
-                     
+                      
                     </Typography>
                   </motion.div>
                 </Box>
@@ -376,3 +370,4 @@ const AdminLogin = () => {
 };
 
 export default AdminLogin;
+

@@ -20,7 +20,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../assets/logo.png';
 
-// Animation variants
 const headerVariants = {
   hidden: { y: -100, opacity: 0 },
   visible: { 
@@ -179,7 +178,6 @@ const Layout = ({ children }) => {
               </motion.div>
             </Box>
             
-            {/* Desktop Navigation */}
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -239,7 +237,6 @@ const Layout = ({ children }) => {
                </Box>
              </motion.div>
 
-             {/* Mobile Navigation */}
              <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
                <motion.div
                  variants={buttonVariants}
@@ -314,7 +311,6 @@ const Layout = ({ children }) => {
       </Container>
       </motion.div>
 
-      {/* Footer */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -346,3 +342,4 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
+

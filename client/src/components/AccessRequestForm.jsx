@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FiUser, FiPhone, FiMail, FiUserCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import ImageCapture from "./ImageCapture";
+import ImageCapture from "./ImageCapture.jsx";
 import { getApiUrl, API_ENDPOINTS } from "../config/api";
 
 const AccessRequestForm = () => {
@@ -19,7 +19,6 @@ const AccessRequestForm = () => {
     visitorDescription: "",
     companyName: "",
     clientMobileNumber: "",
-    // Interview fields
     interviewPosition: "",
     interviewerName: "",
     interviewerPhone: "",
@@ -34,69 +33,109 @@ const AccessRequestForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const dataURLtoFile = (dataurl, filename) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const uploadCapturedImages = async (requestId) => {
+    for (const imageData of capturedImages) {
+      try {
+        const file = dataURLtoFile(imageData, `capture-${Date.now()}.jpg`);
+        const formDataUpload = new FormData();
+        formDataUpload.append('image', file);
+        formDataUpload.append('requestId', requestId);
+
+        const token = localStorage.getItem('adminToken') || 
+                     localStorage.getItem('hrToken') || 
+                     localStorage.getItem('token');
+
+        const uploadTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Image upload timeout')), 30000);
+        });
+
+        const uploadPromise = fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
+          method: 'POST',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {},
+          body: formDataUpload
+        });
+
+        const response = await Promise.race([uploadPromise, uploadTimeoutPromise]);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          throw new Error(errorData.message || 'Image upload failed');
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+      }
+    }
+  };
+
+  const handleImageCapture = (imageUrl) => {
+    setCapturedImages(prev => [...prev, imageUrl]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate phone number (must be exactly 10 digits)
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(formData.phoneNumber)) {
       alert('Phone number must be exactly 10 digits');
       return;
     }
-    
-    // Validate that photo is captured (mandatory)
     if (capturedImages.length === 0) {
       alert('Photo capture is mandatory. Please capture your photo before submitting.');
       return;
     }
 
-    // Validate conditional fields based on purpose
     if (formData.purposeOfAccess === 'interview') {
       if (!formData.interviewPosition || !formData.interviewerName || !formData.interviewerPhone || !formData.interviewType) {
         alert('Please fill in all interview fields: Position, Interviewer Name, Interviewer Phone, and Interview Type');
         return;
       }
     }
-
     if (formData.purposeOfAccess === 'onboarding') {
       if (!formData.referenceName || !formData.referencePhoneNumber) {
         alert('Please fill in all onboarding fields: Reference Name and Reference Phone Number');
         return;
       }
     }
-
     if (formData.purposeOfAccess === 'training') {
       if (!formData.trainingName || !formData.trainerNumber || !formData.departmentName) {
         alert('Please fill in all training fields: Training Name, Trainer Number, and Department Name');
         return;
       }
     }
-
     if (formData.purposeOfAccess === 'assignment') {
       if (!formData.departmentName) {
         alert('Please fill in the Department Name for assignment');
         return;
       }
     }
-
     if (formData.purposeOfAccess === 'visitor') {
       if (!formData.visitorDescription) {
         alert('Please fill in the Description for visitor');
         return;
       }
     }
-
     if (formData.purposeOfAccess === 'client') {
       if (!formData.companyName || !formData.clientMobileNumber) {
         alert('Please fill in all client fields: Company Name and Mobile Number');
         return;
       }
     }
-    
-    setIsSubmitting(true);
 
+    setIsSubmitting(true);
     try {
-      // Prepare data for submission with correct field names for backend
       const submitData = {
         fullName: formData.fullName,
         email: formData.email,
@@ -104,46 +143,36 @@ const AccessRequestForm = () => {
         purposeOfAccess: formData.purposeOfAccess,
         whomToMeet: formData.whomToMeet,
       };
-
-      // Add conditional fields based on purpose
       if (formData.purposeOfAccess === 'onboarding') {
         submitData.referenceName = formData.referenceName;
         submitData.referencePhoneNumber = formData.referencePhoneNumber;
       }
-
       if (formData.purposeOfAccess === 'training') {
         submitData.trainingName = formData.trainingName;
         submitData.trainerNumber = formData.trainerNumber;
         submitData.departmentName = formData.departmentName;
       }
-
       if (formData.purposeOfAccess === 'assignment') {
         submitData.departmentName = formData.departmentName;
       }
-
       if (formData.purposeOfAccess === 'visitor') {
         submitData.visitorDescription = formData.visitorDescription;
       }
-
       if (formData.purposeOfAccess === 'client') {
         submitData.companyName = formData.companyName;
         submitData.clientMobileNumber = formData.clientMobileNumber;
       }
-
       if (formData.purposeOfAccess === 'interview') {
         submitData.interviewPosition = formData.interviewPosition;
         submitData.interviewerName = formData.interviewerName;
         submitData.interviewerPhone = formData.interviewerPhone;
         submitData.interviewType = formData.interviewType;
       }
-
-      // Add images array (empty initially, will be populated after upload)
       submitData.images = [];
 
-      // Add timeout to prevent hanging requests
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout - please try again')), 60000); // 60 second timeout
-    });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout - please try again')), 60000);
+      });
 
       const fetchPromise = fetch(getApiUrl(API_ENDPOINTS.REQUESTS), {
         method: 'POST',
@@ -154,27 +183,14 @@ const AccessRequestForm = () => {
       });
 
       const submitResponse = await Promise.race([fetchPromise, timeoutPromise]);
-
       if (submitResponse.ok) {
         const result = await submitResponse.json();
-        
-        // Extract requestId from response - backend returns both requestId and data.id
         const requestId = result.requestId || result.data?.id || result.id;
-        
-        // Show success immediately after form submission
         setIsSubmitting(false);
         setShowSuccess(true);
-        
-        // Upload captured images in background if any exist
         if (capturedImages.length > 0 && requestId) {
-          // Don't await this - let it run in background
-          uploadCapturedImages(requestId).catch(imageUploadError => {
-            console.error('Background image upload failed:', imageUploadError);
-            // Image upload failure doesn't affect the success state
-          });
+          uploadCapturedImages(requestId).catch(() => {});
         }
-        
-        // Reset form after success
         setTimeout(() => {
           setShowSuccess(false);
           setCapturedImages([]);
@@ -192,7 +208,6 @@ const AccessRequestForm = () => {
             visitorDescription: "",
             companyName: "",
             clientMobileNumber: "",
-            // Interview fields
             interviewPosition: "",
             interviewerName: "",
             interviewerPhone: "",
@@ -215,61 +230,13 @@ const AccessRequestForm = () => {
     }
   };
 
-  const uploadCapturedImages = async (requestId) => {
-    for (const imageData of capturedImages) {
-      try {
-        const file = dataURLtoFile(imageData, `capture-${Date.now()}.jpg`);
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('requestId', requestId);
-
-        const token = localStorage.getItem('adminToken') || 
-                     localStorage.getItem('hrToken') || 
-                     localStorage.getItem('token');
-
-        // Add timeout for image upload
-        const uploadTimeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Image upload timeout')), 30000); // 30 second timeout
-        });
-
-        const uploadPromise = fetch(getApiUrl(API_ENDPOINTS.UPLOAD), {
-          method: 'POST',
-          headers: token ? {
-            'Authorization': `Bearer ${token}`
-          } : {},
-          body: formData
-        });
-
-        const response = await Promise.race([uploadPromise, uploadTimeoutPromise]);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          throw new Error(errorData.message || 'Image upload failed');
-        }
-
-        console.log('Image uploaded successfully for requestId:', requestId);
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        // Don't throw error - just log it and continue with other images
-        // This prevents one failed image from stopping all uploads
-      }
-    }
+  const formVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
   };
-
-  const dataURLtoFile = (dataurl, filename) => {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
-  };
-
-  const handleImageCapture = (imageUrl) => {
-    setCapturedImages(prev => [...prev, imageUrl]);
+  const inputVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
   };
 
   if (showSuccess)
@@ -280,8 +247,6 @@ const AccessRequestForm = () => {
             <div className="text-4xl sm:text-6xl mb-4 animate-pulse">✅</div>
             <h1 className="text-2xl sm:text-3xl font-semibold mb-2">Request Submitted!</h1>
             <p className="text-white/80 mb-6 text-sm sm:text-base">You will be notified once approved.</p>
-            
-
           </div>
         </div>
       </div>
@@ -306,7 +271,6 @@ const AccessRequestForm = () => {
           initial="hidden"
           animate="visible"
         >
-          {/* Basic Info */}
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4"
             variants={inputVariants}
@@ -364,7 +328,6 @@ const AccessRequestForm = () => {
             />
           </motion.div>
 
-          {/* Visit Details */}
           <div className="flex flex-col">
             <label className="text-white/80 mb-1">Purpose of Access *</label>
             <select
@@ -397,7 +360,6 @@ const AccessRequestForm = () => {
             />
           </div>
 
-          {/* Reference Fields - Only show when purpose is 'onboarding' */}
           {formData.purposeOfAccess === 'onboarding' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col">
@@ -427,7 +389,6 @@ const AccessRequestForm = () => {
             </div>
           )}
 
-          {/* Interview Fields - Only show when purpose is 'interview' */}
           {formData.purposeOfAccess === 'interview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col">
@@ -485,7 +446,6 @@ const AccessRequestForm = () => {
             </div>
           )}
 
-          {/* Training Fields - Only show when purpose is 'training' */}
           {formData.purposeOfAccess === 'training' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col">
@@ -496,8 +456,8 @@ const AccessRequestForm = () => {
                   value={formData.trainingName}
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'training'}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="Trainer  Name"
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="Training Name"
                 />
               </div>
               <div className="flex flex-col">
@@ -508,8 +468,8 @@ const AccessRequestForm = () => {
                   value={formData.trainerNumber}
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'training'}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="+91 98765 43210"
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  placeholder="Enter Number"
                 />
               </div>
               <div className="flex flex-col">
@@ -520,14 +480,13 @@ const AccessRequestForm = () => {
                   value={formData.departmentName}
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'training'}
-                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   placeholder="Department Name"
                 />
               </div>
             </div>
           )}
 
-          {/* Assignment Fields - Only show when purpose is 'assignment' */}
           {formData.purposeOfAccess === 'assignment' && (
             <div className="flex flex-col">
               <label className="text-white/80 mb-1">Department Name *</label>
@@ -537,13 +496,12 @@ const AccessRequestForm = () => {
                 value={formData.departmentName}
                 onChange={handleChange}
                 required={formData.purposeOfAccess === 'assignment'}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400"
                 placeholder="Department Name"
               />
             </div>
           )}
 
-          {/* Visitor Fields - Only show when purpose is 'visitor' */}
           {formData.purposeOfAccess === 'visitor' && (
             <div className="flex flex-col">
               <label className="text-white/80 mb-1">Description *</label>
@@ -552,14 +510,12 @@ const AccessRequestForm = () => {
                 value={formData.visitorDescription}
                 onChange={handleChange}
                 required={formData.purposeOfAccess === 'visitor'}
-                rows="3"
-                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
-                placeholder="Reason"
+                className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                placeholder="Enter description"
               />
             </div>
           )}
 
-          {/* Client Fields - Only show when purpose is 'client' */}
           {formData.purposeOfAccess === 'client' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col">
@@ -583,158 +539,35 @@ const AccessRequestForm = () => {
                   onChange={handleChange}
                   required={formData.purposeOfAccess === 'client'}
                   className="px-4 py-2 rounded-xl bg-white/10 text-white placeholder-white/50 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                  placeholder="Enter Number "
+                  placeholder="Enter Number"
                 />
               </div>
             </div>
           )}
 
-          {/* Live Image Capture */}
-          <div className="mt-6">
-            <h3 className="text-white/80 mb-4 text-lg font-semibold">Capture Your Photo *</h3>
-            <p className="text-white/60 mb-4 text-sm">Photo capture is mandatory for identification purposes</p>
-            <ImageCapture 
-              onImageCapture={handleImageCapture}
-            />
-          </div>
-
-          {/* Submit */}
-          <motion.button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-            variants={buttonVariants}
-            initial="idle"
-            whileHover="hover"
-            whileTap="tap"
-          >
-            <motion.span
-              animate={isSubmitting ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
-              transition={isSubmitting ? { repeat: Infinity, duration: 1 } : {}}
-              className="flex items-center justify-center gap-2"
-            >
-              {isSubmitting && (
-                <motion.div
-                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-              )}
-              {isSubmitting ? "Processing..." : "Submit Request"}
-            </motion.span>
-          </motion.button>
-        </motion.form>
-
-        {/* Success Message */}
-        <AnimatePresence>
-          {showSuccess && (
+          <AnimatePresence>
             <motion.div
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
             >
-              <motion.div
-                className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center"
-                variants={successVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <motion.div
-                  className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 360, 0]
-                  }}
-                  transition={{ 
-                    duration: 0.8,
-                    ease: "easeInOut"
-                  }}
-                >
-                  <FiUserCheck className="text-green-600 text-2xl" />
-                </motion.div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  Request Submitted Successfully!
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Your access request has been submitted and is being processed.
-                </p>
-                <motion.button
-                  onClick={() => setShowSuccess(false)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Close
-                </motion.button>
-              </motion.div>
+              <ImageCapture onImageCapture={handleImageCapture} />
             </motion.div>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>
+
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white px-6 py-3 rounded-xl transition-colors"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </div>
+        </motion.form>
       </div>
     </div>
   );
 };
-
-// Animation variants for form elements
-const formVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: {
-      duration: 0.6,
-      staggerChildren: 0.1
-    }
-  }
-};
-
-const inputVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: { 
-    opacity: 1, 
-    x: 0,
-    transition: { duration: 0.4 }
-  },
-  focus: {
-    scale: 1.02,
-    transition: { duration: 0.2 }
-  }
-};
-
-const buttonVariants = {
-  idle: { scale: 1 },
-  hover: { 
-    scale: 1.05,
-    transition: { duration: 0.2 }
-  },
-  tap: { 
-    scale: 0.95,
-    transition: { duration: 0.1 }
-  }
-};
-
-const successVariants = {
-  hidden: { opacity: 0, scale: 0.8, y: 50 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 20
-    }
-  },
-  exit: { 
-    opacity: 0, 
-    scale: 0.8, 
-    y: -50,
-    transition: { duration: 0.3 }
-  }
-};
-
-
 
 export default AccessRequestForm;

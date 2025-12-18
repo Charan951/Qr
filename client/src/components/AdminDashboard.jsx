@@ -43,16 +43,10 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import HRManagement from './HRManagement';
-import ImageViewer from './ImageViewer';
-import MessageCenter from './MessageCenter';
+import HRManagement from './HRManagement.jsx';
+import ImageViewer from './ImageViewer.jsx';
+import MessageCenter from './MessageCenter.jsx';
 import { getApiUrl, buildApiUrl, API_ENDPOINTS } from '../config/api';
-
-
-
-
-
-
 
 const AdminDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -61,7 +55,7 @@ const AdminDashboard = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' or 'hr-management'
+  const [currentView, setCurrentView] = useState('dashboard');
   const [unreadCount, setUnreadCount] = useState(0);
   const [filters, setFilters] = useState({
     status: '',
@@ -77,7 +71,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check authentication
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
@@ -107,7 +100,7 @@ const AdminDashboard = () => {
           'Content-Type': 'application/json',
         },
         params,
-        timeout: 10000, // 10 second timeout
+        timeout: 10000,
       });
 
       setRequests(response.data.data || []);
@@ -141,8 +134,6 @@ const AdminDashboard = () => {
     }
   };
 
-
-
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('adminToken');
@@ -174,21 +165,18 @@ const AdminDashboard = () => {
   };
 
   const handleApproveReject = async (action) => {
-    // Add loading state for better UX
     setMessage({ type: 'info', text: `Processing ${action}...` });
     
     try {
       const token = localStorage.getItem('adminToken');
       const requestData = { status: action };
       
-      // Add rejection reason if rejecting - always required by backend
       if (action === 'rejected') {
         requestData.rejectionReason = reviewNotes.trim() || 'No specific reason provided';
       }
       
-      // Use a timeout to ensure the request doesn't hang
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       await axios.patch(
         buildApiUrl(API_ENDPOINTS.ADMIN_REQUESTS, selectedRequest._id),
@@ -208,7 +196,6 @@ const AdminDashboard = () => {
 
       setReviewDialogOpen(false);
       
-      // Optimistically update the UI before refetching
       setRequests(prevRequests => 
         prevRequests.map(req => 
           req._id === selectedRequest._id 
@@ -217,7 +204,6 @@ const AdminDashboard = () => {
         )
       );
       
-      // Fetch updated data in the background
       setTimeout(() => {
         fetchRequests();
       }, 100);
@@ -305,7 +291,6 @@ const AdminDashboard = () => {
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Dashboard sx={{ mr: 2, fontSize: 32, color: 'primary.main' }} />
@@ -322,13 +307,11 @@ const AdminDashboard = () => {
         </Button>
       </Box>
 
-      {/* Navigation Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentView} onChange={(e, newValue) => {
           setCurrentView(newValue);
-          // Refresh unread count when switching to messages tab
           if (newValue === 'messages') {
-            setTimeout(() => fetchUnreadCount(), 500); // Small delay to allow MessageCenter to mark messages as read
+            setTimeout(() => fetchUnreadCount(), 500);
           }
         }}>
           <Tab 
@@ -356,7 +339,6 @@ const AdminDashboard = () => {
         </Tabs>
       </Box>
 
-      {/* Conditional Content */}
       {currentView === 'dashboard' ? (
         <>
           {message.text && (
@@ -365,7 +347,6 @@ const AdminDashboard = () => {
             </Alert>
           )}
 
-      {/* Filters and Export */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -431,7 +412,6 @@ const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Requests Cards */}
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
@@ -467,7 +447,6 @@ const AdminDashboard = () => {
                     onClick={() => handleViewRequest(request)}
                   >
                     <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                      {/* Header with ID and Status */}
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Box sx={{ 
                           bgcolor: 'primary.main', 
@@ -483,12 +462,10 @@ const AdminDashboard = () => {
                         {getStatusChip(request.status)}
                       </Box>
                       
-                      {/* Name */}
                       <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: 'text.primary' }}>
                         {request.fullName || 'N/A'}
                       </Typography>
                       
-                      {/* Contact Info */}
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ 
                           display: 'flex', 
@@ -513,7 +490,6 @@ const AdminDashboard = () => {
                         )}
                       </Box>
                       
-                      {/* Purpose */}
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
                           Purpose of Visit:
@@ -529,7 +505,6 @@ const AdminDashboard = () => {
                         </Typography>
                       </Box>
                       
-                      {/* Meeting Info */}
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
                           Meeting With:
@@ -539,7 +514,6 @@ const AdminDashboard = () => {
                         </Typography>
                       </Box>
                       
-                      {/* Submitted Date */}
                       <Typography variant="body2" sx={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -550,7 +524,6 @@ const AdminDashboard = () => {
                         {request.submittedDate ? dayjs(request.submittedDate).format('MMM D, YYYY') : 'N/A'}
                       </Typography>
                       
-                      {/* Actions */}
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', mt: 'auto' }}>
                         <Tooltip title="View Details">
                           <IconButton
@@ -591,10 +564,11 @@ const AdminDashboard = () => {
                                   transform: 'scale(1.1)'
                                 }
                               }}
-                            >
-                              <Edit fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                            }}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         )}
                       </Box>
                     </CardContent>
@@ -604,7 +578,6 @@ const AdminDashboard = () => {
             </Grid>
           )}
           
-          {/* Pagination */}
           {requests.length > 0 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
               <Pagination
@@ -619,13 +592,11 @@ const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* View Request Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Request Details</DialogTitle>
         <DialogContent>
           {selectedRequest && (
             <Grid container spacing={2}>
-              {/* Always show basic required fields */}
               {selectedRequest.fullName && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Name:</Typography>
@@ -657,7 +628,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show reference fields only if they exist */}
               {selectedRequest.referenceName && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Reference Name:</Typography>
@@ -671,7 +641,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show training fields only if they exist */}
               {selectedRequest.trainingName && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Training Name:</Typography>
@@ -685,7 +654,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show department name for training and assignment */}
               {selectedRequest.departmentName && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Department Name:</Typography>
@@ -693,7 +661,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show visitor description */}
               {selectedRequest.visitorDescription && (
                 <Grid size={12}>
                   <Typography variant="subtitle2">Visitor Description:</Typography>
@@ -701,7 +668,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Conditionally show client fields */}
               {selectedRequest.companyName && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Company Name:</Typography>
@@ -715,7 +681,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Always show submitted date and status */}
               {selectedRequest.submittedDate && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="subtitle2">Submitted Date:</Typography>
@@ -727,7 +692,6 @@ const AdminDashboard = () => {
                 {getStatusChip(selectedRequest.status)}
               </Grid>
               
-              {/* Conditionally show optional fields */}
               {selectedRequest.additionalNotes && (
                 <Grid size={12}>
                   <Typography variant="subtitle2">Additional Notes:</Typography>
@@ -741,7 +705,6 @@ const AdminDashboard = () => {
                 </Grid>
               )}
               
-              {/* Images Section */}
               <Grid size={12}>
                 <Typography variant="subtitle2" sx={{ mb: 2 }}>Images:</Typography>
                 <ImageViewer requestId={selectedRequest._id} />
@@ -754,7 +717,6 @@ const AdminDashboard = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Review Request Dialog */}
       <Dialog open={reviewDialogOpen} onClose={() => setReviewDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Review Request</DialogTitle>
         <DialogContent>

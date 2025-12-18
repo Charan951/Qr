@@ -1,22 +1,20 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { motion, AnimatePresence } from 'framer-motion';
+import CircularProgress from '@mui/material/CircularProgress';
 
-// Components
-import AccessRequestForm from './components/AccessRequestForm';
-import AdminLogin from './components/AdminLogin';
-import AdminDashboard from './components/AdminDashboard';
-import HRLogin from './components/HRLogin';
-import HRDashboard from './components/HRDashboard';
-import EmailAction from './components/EmailAction';
+const AccessRequestForm = lazy(() => import('./components/AccessRequestForm.jsx'));
+const AdminLogin = lazy(() => import('./components/AdminLogin.jsx'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard.jsx'));
+const HRLogin = lazy(() => import('./components/HRLogin.jsx'));
+const HRDashboard = lazy(() => import('./components/HRDashboard.jsx'));
+const EmailAction = lazy(() => import('./components/EmailAction.jsx'));
+import Layout from './components/Layout.jsx';
 
-import Layout from './components/Layout';
-
-// Create Material UI theme with mobile responsiveness and animations
 const theme = createTheme({
   palette: {
     primary: {
@@ -303,7 +301,6 @@ const theme = createTheme({
   },
 });
 
-// Page transition animations
 const pageVariants = {
   initial: {
     opacity: 0,
@@ -328,14 +325,12 @@ const pageTransition = {
   duration: 0.4,
 };
 
-// Animated Routes Component
 const AnimatedRoutes = () => {
   const location = useLocation();
   
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
         <Route 
           path="/" 
           element={
@@ -365,7 +360,6 @@ const AnimatedRoutes = () => {
           } 
         />
         
-        {/* Email Action Route */}
         <Route 
           path="/email-action" 
           element={
@@ -381,7 +375,6 @@ const AnimatedRoutes = () => {
           } 
         />
         
-        {/* Admin Routes */}
         <Route 
           path="/admin/login" 
           element={
@@ -411,7 +404,6 @@ const AnimatedRoutes = () => {
           } 
         />
         
-        {/* HR Routes */}
         <Route 
           path="/hr/login" 
           element={
@@ -452,7 +444,9 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Router>
           <Layout>
-            <AnimatedRoutes />
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}><CircularProgress /></div>}>
+              <AnimatedRoutes />
+            </Suspense>
           </Layout>
         </Router>
       </LocalizationProvider>
